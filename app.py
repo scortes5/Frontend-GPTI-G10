@@ -2,8 +2,8 @@ import streamlit as st
 
 import api
 
-st.set_page_config(page_title="AgroTracker", page_icon="🌱", layout="wide")
-st.title("🌱 AgroTracker")
+st.set_page_config(page_title="AgroTracker", layout="wide")
+st.title("AgroTracker")
 st.caption("Trazabilidad y gestión de cosecha · Cooperativa Newen al Sur")
 
 try:

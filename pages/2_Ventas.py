@@ -4,7 +4,7 @@ import streamlit as st
 
 import api
 
-st.set_page_config(page_title="Ventas · AgroTracker", page_icon="🌱", layout="wide")
+st.set_page_config(page_title="Ventas · AgroTracker", layout="wide")
 st.title("Ventas")
 
 
