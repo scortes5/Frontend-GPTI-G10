@@ -3,6 +3,7 @@ from datetime import date
 import streamlit as st
 
 import api
+import sesion
 
 st.title("Lotes")
 
@@ -11,10 +12,17 @@ def describir(lote: dict) -> str:
     return f"{lote['codigo']} · {lote['cultivo']} · {lote['productor']}"
 
 
+def campo_productor(valor: str) -> str:
+    """El administrador elige el productor; un productor siempre registra a su nombre."""
+    if sesion.es_admin():
+        return st.text_input("Productor", value=valor)
+    return st.text_input("Productor", value=sesion.usuario()["nombre"], disabled=True)
+
+
 def formulario_registro() -> None:
     with st.form("nuevo_lote", clear_on_submit=True):
         st.subheader("Registrar lote")
-        productor = st.text_input("Productor")
+        productor = campo_productor("")
         cultivo = st.text_input("Cultivo")
         kilos = st.number_input("Kilos", min_value=0.0, step=0.5)
         fecha = st.date_input("Fecha de cosecha", value=date.today(), max_value=date.today())
@@ -36,7 +44,7 @@ def formulario_registro() -> None:
 
 def formulario_edicion(lote: dict) -> None:
     with st.form(f"editar_{lote['codigo']}"):
-        productor = st.text_input("Productor", value=lote["productor"])
+        productor = campo_productor(lote["productor"])
         cultivo = st.text_input("Cultivo", value=lote["cultivo"])
         kilos = st.number_input("Kilos", min_value=0.0, step=0.5, value=float(lote["kilos"]))
         fecha = st.date_input(
@@ -80,7 +88,8 @@ if not lotes:
 
 st.dataframe(lotes, width="stretch", hide_index=True)
 
-st.subheader("Editar o eliminar")
+st.subheader("Editar o eliminar" if sesion.es_admin() else "Editar")
 seleccionado = st.selectbox("Lote", lotes, format_func=describir)
 formulario_edicion(seleccionado)
-eliminacion(seleccionado)
+if sesion.es_admin():
+    eliminacion(seleccionado)
