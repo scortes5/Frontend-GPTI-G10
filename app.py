@@ -1,6 +1,7 @@
 """Punto de entrada: arma el menú según la sesión y el rol del usuario."""
 import streamlit as st
 
+import api
 import sesion
 
 st.set_page_config(page_title="AgroTracker", layout="wide")
@@ -25,6 +26,10 @@ else:
         st.write(f"**{usuario['nombre']}**")
         st.caption(ROL_VISIBLE[usuario["rol"]])
         if st.button("Cerrar sesión"):
+            try:
+                api.logout()  # revoca el token en el backend
+            except api.BackendError:
+                pass  # si ya expiró o no hay conexión, igual se cierra la sesión local
             sesion.cerrar()
             st.rerun()
 

@@ -66,6 +66,10 @@ def login(email: str, clave: str) -> dict:
     return _request("POST", "/auth/login", json={"email": email, "clave": clave})
 
 
+def logout() -> None:
+    _request("POST", "/auth/logout")
+
+
 def listar_lotes() -> list[dict]:
     return _request("GET", "/lotes")
 
