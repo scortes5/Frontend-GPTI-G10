@@ -3,6 +3,8 @@ import os
 
 from dotenv import load_dotenv
 
+import sesion
+
 load_dotenv()
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
@@ -11,14 +13,22 @@ class BackendError(Exception):
     """El backend no respondió o devolvió un error. El mensaje es apto para mostrar al usuario."""
 
 
+class SesionExpirada(BackendError):
+    """El token ya no es válido: hay que volver a iniciar sesión."""
+
+
 def _request(method: str, path: str, **kwargs):
     import requests
 
+    headers = {"Authorization": f"Bearer {sesion.token()}"} if sesion.activa() else {}
     try:
-        response = requests.request(method, f"{BACKEND_URL}{path}", timeout=30, **kwargs)
+        response = requests.request(method, f"{BACKEND_URL}{path}", headers=headers, timeout=30, **kwargs)
     except requests.RequestException as e:
         raise BackendError("No se pudo conectar al backend.") from e
 
+    if response.status_code == 401 and sesion.activa():
+        sesion.cerrar()
+        raise SesionExpirada("Tu sesión expiró. Vuelve a iniciar sesión.")
     if not response.ok:
         raise BackendError(_mensaje_de_error(response))
     return response.json() if response.content else None
@@ -38,6 +48,10 @@ def _mensaje_de_error(response) -> str:
 
 def health() -> dict:
     return _request("GET", "/health")
+
+
+def login(email: str, clave: str) -> dict:
+    return _request("POST", "/auth/login", json={"email": email, "clave": clave})
 
 
 def listar_lotes() -> list[dict]:

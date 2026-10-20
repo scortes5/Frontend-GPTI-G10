@@ -1,27 +1,29 @@
+"""Punto de entrada: arma el menú según la sesión y el rol del usuario."""
 import streamlit as st
 
-import api
+import sesion
 
 st.set_page_config(page_title="AgroTracker", layout="wide")
-st.title("AgroTracker")
-st.caption("Trazabilidad y gestión de cosecha · Cooperativa Newen al Sur")
 
-try:
-    resumen = api.resumen()
-except api.BackendError:
-    st.error(f"No se pudo conectar al backend en {api.BACKEND_URL}")
-    st.stop()
+ROL_VISIBLE = {"admin": "Administrador", "productor": "Productor"}
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Lotes registrados", resumen["total_lotes"])
-col2.metric("Kilos cosechados", f"{resumen['kilos_cosechados']:,.1f}")
-col3.metric("Kilos disponibles", f"{resumen['kilos_disponibles']:,.1f}")
-col4.metric("Ingresos por ventas", f"${resumen['ingresos']:,.0f}")
+trazabilidad = st.Page("vistas/trazabilidad.py", title="Trazabilidad", url_path="Trazabilidad")
 
-st.subheader("Kilos cosechados por cultivo")
-if resumen["kilos_por_cultivo"]:
-    st.bar_chart(resumen["kilos_por_cultivo"], x_label="Cultivo", y_label="Kilos")
+if not sesion.activa():
+    paginas = [st.Page("vistas/login.py", title="Iniciar sesión", default=True), trazabilidad]
 else:
-    st.write("Aún no hay cosechas registradas.")
+    paginas = [
+        st.Page("vistas/inicio.py", title="Inicio", default=True),
+        st.Page("vistas/lotes.py", title="Lotes", url_path="Lotes"),
+        st.Page("vistas/ventas.py", title="Ventas", url_path="Ventas"),
+        trazabilidad,
+    ]
+    usuario = sesion.usuario()
+    with st.sidebar:
+        st.write(f"**{usuario['nombre']}**")
+        st.caption(ROL_VISIBLE[usuario["rol"]])
+        if st.button("Cerrar sesión"):
+            sesion.cerrar()
+            st.rerun()
 
-st.info("Usa el menú lateral para registrar lotes y ventas o consultar la trazabilidad.")
+st.navigation(paginas).run()

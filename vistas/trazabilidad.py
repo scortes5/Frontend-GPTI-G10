@@ -3,7 +3,6 @@ import streamlit as st
 
 import api
 
-st.set_page_config(page_title="Trazabilidad · AgroTracker", layout="wide")
 st.title("Trazabilidad de lote")
 
 
