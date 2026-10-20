@@ -40,6 +40,23 @@ def mostrar_recomendacion(codigo: str) -> None:
             st.error(f"No se pudo generar la recomendación. {e}")
 
 
+def envio_por_correo(codigo: str) -> None:
+    st.subheader("Enviar reporte por correo")
+    with st.form("reporte_correo", clear_on_submit=True):
+        destinatario = st.text_input("Correo del destinatario", placeholder="auditor@cooperativa.cl")
+        if not st.form_submit_button("Enviar reporte"):
+            return
+        if not destinatario.strip():
+            st.warning("Ingresa un correo.")
+            return
+        try:
+            api.enviar_reporte(codigo, destinatario.strip())
+        except api.BackendError as e:
+            st.error(f"No se pudo enviar el reporte. {e}")
+            return
+        st.success(f"Reporte enviado a {destinatario.strip()}.")
+
+
 codigo = st.text_input("Código del lote", value=st.query_params.get("codigo", "")).strip()
 if not codigo:
     st.info("Ingresa un código o escanea el QR del lote.")
@@ -53,4 +70,5 @@ except api.BackendError as e:
     st.stop()
 
 mostrar_ficha(traza)
+envio_por_correo(codigo)
 mostrar_recomendacion(codigo)

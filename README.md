@@ -8,7 +8,7 @@ Interfaz (Streamlit) del sistema de trazabilidad y gestión de cosecha para la C
 app.py                  # inicio / dashboard con indicadores
 pages/1_Lotes.py        # registrar, editar y eliminar lotes
 pages/2_Ventas.py       # ventas por lote
-pages/3_Trazabilidad.py # ficha pública del lote (destino del QR) + recomendación IA
+pages/3_Trazabilidad.py # ficha pública del lote (destino del QR), reporte por correo y recomendación IA
 api.py          # llamadas al backend
 ```
 

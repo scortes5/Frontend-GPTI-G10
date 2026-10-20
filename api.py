@@ -72,6 +72,10 @@ def recomendacion(codigo: str) -> str:
     return _request("GET", f"/lotes/{codigo}/recomendacion")["texto"]
 
 
+def enviar_reporte(codigo: str, destinatario: str) -> None:
+    _request("POST", f"/lotes/{codigo}/reporte", json={"destinatario": destinatario})
+
+
 def resumen() -> dict:
     return _request("GET", "/dashboard/resumen")
 
