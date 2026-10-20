@@ -104,5 +104,17 @@ def resumen() -> dict:
     return _request("GET", "/dashboard/resumen")
 
 
+def listar_usuarios() -> list[dict]:
+    return _request("GET", "/usuarios")
+
+
+def crear_usuario(data: dict) -> dict:
+    return _request("POST", "/usuarios", json=data)
+
+
+def actualizar_usuario(usuario_id: int, cambios: dict) -> dict:
+    return _request("PATCH", f"/usuarios/{usuario_id}", json=cambios)
+
+
 def qr_url(codigo: str) -> str:
     return f"{BACKEND_URL}/lotes/{codigo}/qr"

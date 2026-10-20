@@ -18,6 +18,8 @@ else:
         st.Page("vistas/ventas.py", title="Ventas", url_path="Ventas"),
         trazabilidad,
     ]
+    if sesion.es_admin():
+        paginas.append(st.Page("vistas/usuarios.py", title="Usuarios", url_path="Usuarios"))
     usuario = sesion.usuario()
     with st.sidebar:
         st.write(f"**{usuario['nombre']}**")
