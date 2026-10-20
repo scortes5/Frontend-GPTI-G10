@@ -70,6 +70,14 @@ def logout() -> None:
     _request("POST", "/auth/logout")
 
 
+def solicitar_codigo(email: str) -> str:
+    return _request("POST", "/auth/recuperar", json={"email": email})["detail"]
+
+
+def restablecer_clave(email: str, codigo: str, clave_nueva: str) -> None:
+    _request("POST", "/auth/restablecer", json={"email": email, "codigo": codigo, "clave_nueva": clave_nueva})
+
+
 def listar_lotes() -> list[dict]:
     return _request("GET", "/lotes")
 

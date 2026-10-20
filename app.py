@@ -11,7 +11,11 @@ ROL_VISIBLE = {"admin": "Administrador", "productor": "Productor"}
 trazabilidad = st.Page("vistas/trazabilidad.py", title="Trazabilidad", url_path="Trazabilidad")
 
 if not sesion.activa():
-    paginas = [st.Page("vistas/login.py", title="Iniciar sesión", default=True), trazabilidad]
+    paginas = [
+        st.Page("vistas/login.py", title="Iniciar sesión", default=True),
+        st.Page("vistas/recuperar.py", title="Recuperar contraseña", url_path="Recuperar"),
+        trazabilidad,
+    ]
 else:
     paginas = [
         st.Page("vistas/inicio.py", title="Inicio", default=True),

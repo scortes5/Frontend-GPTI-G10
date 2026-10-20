@@ -19,4 +19,5 @@ with st.form("login"):
             sesion.iniciar(respuesta["access_token"], respuesta["usuario"])
             st.rerun()
 
+st.page_link("vistas/recuperar.py", label="¿Olvidaste tu contraseña?")
 st.info("¿Escaneaste un QR? Abre **Trazabilidad** en el menú para ver el origen del lote.")
