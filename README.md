@@ -32,14 +32,7 @@ streamlit run app.py
 
 Abre http://localhost:8501
 
-## Despliegue (Streamlit Community Cloud)
+## Configuración
 
-1. En [share.streamlit.io](https://share.streamlit.io) crear una app desde este repo con `app.py`.
-2. En **Settings > Secrets** agregar:
-
-   ```toml
-   BACKEND_URL = "https://<api-en-render>.onrender.com"
-   ```
-
-   Streamlit expone los secrets de primer nivel como variables de entorno, que lee `api.py`.
-3. Copiar la URL de la app en `FRONTEND_URL` del backend para que funcionen CORS y el QR.
+La única variable es `BACKEND_URL` (URL de la API). La arquitectura de despliegue está
+en el README del backend.
