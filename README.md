@@ -9,6 +9,7 @@ app.py                   # punto de entrada: menú según sesión y rol
 sesion.py                # sesión del usuario (token y datos), una por pestaña
 api.py                   # llamadas al backend
 vistas/login.py          # iniciar sesión
+vistas/recuperar.py      # recuperar contraseña con código por correo
 vistas/inicio.py         # dashboard con indicadores
 vistas/lotes.py          # registrar y editar lotes (eliminar: solo admin)
 vistas/ventas.py         # ventas por lote
@@ -50,9 +51,21 @@ mostrar su origen con un **código QR**.
 
 1. Abre la página que te entregó la cooperativa.
 2. Escribe tu **correo** y **contraseña** y presiona **Entrar**.
-3. Para salir, usa **Cerrar sesión** en el menú de la izquierda.
+3. Para salir, usa **Cerrar sesión** en el menú de la izquierda. Hazlo siempre en computadores
+   compartidos.
 
-¿No tienes cuenta o olvidaste tu contraseña? Pídela a la directiva de la cooperativa.
+¿No tienes cuenta? Pídela a la directiva de la cooperativa.
+
+### Olvidé mi contraseña
+
+1. En la pantalla de entrada presiona **¿Olvidaste tu contraseña?**
+2. Escribe tu correo y presiona **Enviar código**. Te llegará un correo con un código de 6
+   dígitos (revisa también spam).
+3. Escribe el código y tu nueva contraseña dos veces, y presiona **Cambiar contraseña**.
+
+El código dura 15 minutos y sirve una sola vez. Al cambiar la contraseña se cierra tu sesión en
+todos los dispositivos. Si fallas 5 veces seguidas al entrar, espera 15 minutos o recupera tu
+contraseña.
 
 ### Si eres productor
 
