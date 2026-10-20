@@ -1,5 +1,6 @@
 """Funciones para hablar con el backend."""
 import os
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 
@@ -52,6 +53,11 @@ def _mensaje_de_error(response) -> str:
     return f"Error del backend ({response.status_code})."
 
 
+def _segmento(valor) -> str:
+    """Codifica un valor para usarlo dentro de una ruta: '../usuarios' no puede cambiar el endpoint."""
+    return quote(str(valor), safe="")
+
+
 def health() -> dict:
     return _request("GET", "/health")
 
@@ -69,35 +75,35 @@ def crear_lote(data: dict) -> dict:
 
 
 def actualizar_lote(codigo: str, cambios: dict) -> dict:
-    return _request("PATCH", f"/lotes/{codigo}", json=cambios)
+    return _request("PATCH", f"/lotes/{_segmento(codigo)}", json=cambios)
 
 
 def eliminar_lote(codigo: str) -> None:
-    _request("DELETE", f"/lotes/{codigo}")
+    _request("DELETE", f"/lotes/{_segmento(codigo)}")
 
 
 def listar_ventas(codigo: str) -> list[dict]:
-    return _request("GET", f"/lotes/{codigo}/ventas")
+    return _request("GET", f"/lotes/{_segmento(codigo)}/ventas")
 
 
 def registrar_venta(codigo: str, data: dict) -> dict:
-    return _request("POST", f"/lotes/{codigo}/ventas", json=data)
+    return _request("POST", f"/lotes/{_segmento(codigo)}/ventas", json=data)
 
 
 def lote_publico(codigo: str) -> dict:
-    return _request("GET", f"/publico/lotes/{codigo}")
+    return _request("GET", f"/publico/lotes/{_segmento(codigo)}")
 
 
 def trazabilidad(codigo: str) -> dict:
-    return _request("GET", f"/lotes/{codigo}/trazabilidad")
+    return _request("GET", f"/lotes/{_segmento(codigo)}/trazabilidad")
 
 
 def recomendacion(codigo: str) -> str:
-    return _request("GET", f"/lotes/{codigo}/recomendacion")["texto"]
+    return _request("GET", f"/lotes/{_segmento(codigo)}/recomendacion")["texto"]
 
 
 def enviar_reporte(codigo: str, destinatario: str) -> None:
-    _request("POST", f"/lotes/{codigo}/reporte", json={"destinatario": destinatario})
+    _request("POST", f"/lotes/{_segmento(codigo)}/reporte", json={"destinatario": destinatario})
 
 
 def resumen() -> dict:
@@ -113,8 +119,8 @@ def crear_usuario(data: dict) -> dict:
 
 
 def actualizar_usuario(usuario_id: int, cambios: dict) -> dict:
-    return _request("PATCH", f"/usuarios/{usuario_id}", json=cambios)
+    return _request("PATCH", f"/usuarios/{_segmento(usuario_id)}", json=cambios)
 
 
 def qr_url(codigo: str) -> str:
-    return f"{BACKEND_URL}/lotes/{codigo}/qr"
+    return f"{BACKEND_URL}/lotes/{_segmento(codigo)}/qr"
