@@ -5,11 +5,16 @@ Interfaz (Streamlit) del sistema de trazabilidad y gestión de cosecha para la C
 ## Estructura
 
 ```
-app.py                  # inicio / dashboard con indicadores
-pages/1_Lotes.py        # registrar, editar y eliminar lotes
-pages/2_Ventas.py       # ventas por lote
-pages/3_Trazabilidad.py # ficha pública del lote (destino del QR) + recomendación IA
-api.py          # llamadas al backend
+app.py                   # punto de entrada: menú según sesión y rol
+sesion.py                # sesión del usuario (token y datos), una por pestaña
+api.py                   # llamadas al backend
+vistas/login.py          # iniciar sesión
+vistas/recuperar.py      # recuperar contraseña con código por correo
+vistas/inicio.py         # dashboard con indicadores
+vistas/lotes.py          # registrar y editar lotes (eliminar: solo admin)
+vistas/ventas.py         # ventas por lote
+vistas/trazabilidad.py   # ficha del lote (destino del QR), reporte por correo y recomendación IA
+vistas/usuarios.py       # gestión de usuarios (solo admin)
 ```
 
 ## Setup
@@ -32,14 +37,64 @@ streamlit run app.py
 
 Abre http://localhost:8501
 
-## Despliegue (Streamlit Community Cloud)
+## Configuración
 
-1. En [share.streamlit.io](https://share.streamlit.io) crear una app desde este repo con `app.py`.
-2. En **Settings > Secrets** agregar:
+La única variable es `BACKEND_URL` (URL de la API). La arquitectura de despliegue está
+en el README del backend.
 
-   ```toml
-   BACKEND_URL = "https://<api-en-render>.onrender.com"
-   ```
+## Manual de usuario (piloto)
 
-   Streamlit expone los secrets de primer nivel como variables de entorno, que lee `api.py`.
-3. Copiar la URL de la app en `FRONTEND_URL` del backend para que funcionen CORS y el QR.
+AgroTracker sirve para registrar cada cosecha como un **lote**, anotar a quién se vende y
+mostrar su origen con un **código QR**.
+
+### Entrar
+
+1. Abre la página que te entregó la cooperativa.
+2. Escribe tu **correo** y **contraseña** y presiona **Entrar**.
+3. Para salir, usa **Cerrar sesión** en el menú de la izquierda. Hazlo siempre en computadores
+   compartidos.
+
+¿No tienes cuenta? Pídela a la directiva de la cooperativa.
+
+### Olvidé mi contraseña
+
+1. En la pantalla de entrada presiona **¿Olvidaste tu contraseña?**
+2. Escribe tu correo y presiona **Enviar código**. Te llegará un correo con un código de 6
+   dígitos (revisa también spam).
+3. Escribe el código y tu nueva contraseña dos veces, y presiona **Cambiar contraseña**.
+
+El código dura 15 minutos y sirve una sola vez. Al cambiar la contraseña se cierra tu sesión en
+todos los dispositivos. Si fallas 5 veces seguidas al entrar, espera 15 minutos o recupera tu
+contraseña.
+
+### Si eres productor
+
+- **Registrar una cosecha:** menú **Lotes** → completa cultivo, kilos y fecha → **Guardar**.
+  Aparece el código QR del lote: guárdalo o imprímelo para la caja o el envío.
+- **Corregir un lote:** en **Lotes**, baja a **Editar**, elige el lote, cambia los datos y
+  presiona **Guardar cambios**.
+- **Registrar una venta:** menú **Ventas** → elige el lote → comprador, kilos, precio por kilo
+  y fecha → **Registrar**. No se puede vender más de lo que queda disponible.
+- **Ver el historial de un lote:** menú **Trazabilidad** → escribe el código del lote.
+  Ahí puedes **enviar el reporte por correo** (por ejemplo, a un auditor) y pedir una
+  **recomendación** para conservar y vender lo que queda.
+- En **Inicio** ves un resumen de tus kilos e ingresos.
+
+Solo ves tus propios lotes.
+
+### Si eres administrador (directiva)
+
+Puedes hacer todo lo anterior con los lotes de **todos** los socios, y además:
+
+- **Crear cuentas:** menú **Usuarios** → nombre, correo, contraseña inicial y rol → **Crear**.
+  Entrega el correo y la contraseña al socio.
+- **Quitar el acceso o cambiar el rol:** en **Usuarios**, elige a la persona, desmarca
+  **Puede iniciar sesión** o cambia el rol y presiona **Guardar cambios**.
+- **Eliminar un lote:** en **Lotes**, marca la confirmación y presiona **Eliminar lote**
+  (también borra sus ventas).
+- En **Inicio** ves el resumen de toda la cooperativa.
+
+### Para compradores y auditores (sin cuenta)
+
+Escanea el código QR del lote con la cámara del teléfono. Se abre la ficha con el origen del
+lote: productor, cultivo, fecha de cosecha y kilos. Las ventas y precios no se muestran.
