@@ -17,6 +17,10 @@ class SesionExpirada(BackendError):
     """El token ya no es válido: hay que volver a iniciar sesión."""
 
 
+class AccesoDenegado(BackendError):
+    """El usuario no tiene permiso para este recurso (por ejemplo, un lote de otro productor)."""
+
+
 def _request(method: str, path: str, **kwargs):
     import requests
 
@@ -29,6 +33,8 @@ def _request(method: str, path: str, **kwargs):
     if response.status_code == 401 and sesion.activa():
         sesion.cerrar()
         raise SesionExpirada("Tu sesión expiró. Vuelve a iniciar sesión.")
+    if response.status_code == 403:
+        raise AccesoDenegado(_mensaje_de_error(response))
     if not response.ok:
         raise BackendError(_mensaje_de_error(response))
     return response.json() if response.content else None
@@ -76,6 +82,10 @@ def listar_ventas(codigo: str) -> list[dict]:
 
 def registrar_venta(codigo: str, data: dict) -> dict:
     return _request("POST", f"/lotes/{codigo}/ventas", json=data)
+
+
+def lote_publico(codigo: str) -> dict:
+    return _request("GET", f"/publico/lotes/{codigo}")
 
 
 def trazabilidad(codigo: str) -> dict:

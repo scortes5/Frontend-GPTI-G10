@@ -1,9 +1,25 @@
-"""Ficha pública del lote. El QR de cada lote apunta a /Trazabilidad?codigo=<codigo>."""
+"""Ficha del lote. El QR de cada lote apunta a /Trazabilidad?codigo=<codigo>.
+
+Sin sesión (o si el lote es de otro productor) se muestra solo el origen del lote;
+con permiso, también ventas, reporte por correo y recomendación.
+"""
 import streamlit as st
 
 import api
+import sesion
 
 st.title("Trazabilidad de lote")
+
+
+def mostrar_ficha_publica(lote: dict) -> None:
+    st.subheader(f"{lote['cultivo']} · {lote['productor']}")
+    datos, qr = st.columns([3, 1])
+    with datos:
+        st.write(f"**Código:** {lote['codigo']}")
+        st.write(f"**Fecha de cosecha:** {lote['fecha_cosecha']}")
+        st.metric("Kilos cosechados", f"{lote['kilos']:,.1f}")
+    with qr:
+        st.image(api.qr_url(lote["codigo"]), caption="Código QR del lote", width=180)
 
 
 def mostrar_ficha(traza: dict) -> None:
@@ -63,11 +79,13 @@ if not codigo:
 
 st.query_params["codigo"] = codigo
 try:
-    traza = api.trazabilidad(codigo)
+    if sesion.activa():
+        mostrar_ficha(api.trazabilidad(codigo))
+        envio_por_correo(codigo)
+        mostrar_recomendacion(codigo)
+    else:
+        mostrar_ficha_publica(api.lote_publico(codigo))
+except api.AccesoDenegado:
+    mostrar_ficha_publica(api.lote_publico(codigo))
 except api.BackendError as e:
     st.error(str(e))
-    st.stop()
-
-mostrar_ficha(traza)
-envio_por_correo(codigo)
-mostrar_recomendacion(codigo)
