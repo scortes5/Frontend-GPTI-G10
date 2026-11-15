@@ -1,0 +1,19 @@
+{# Campos del lote, compartidos por registrar y editar. Requiere `valores`. #}
+{% from "_macros.html" import campo %}
+{% if es_admin %}
+{{ campo("productor", "Productor", valores.get("productor", ""), required=true, maxlength="120", autocomplete="off") }}
+{% else %}
+<label class="campo">
+  <span class="campo__etiqueta">Productor</span>
+  <span class="campo__control"><input type="text" value="{{ usuario.nombre }}" disabled></span>
+  <span class="campo__ayuda">Los lotes quedan a tu nombre.</span>
+</label>
+{% endif %}
+{{ campo("cultivo", "Cultivo", valores.get("cultivo", ""), required=true, maxlength="80", placeholder="Ej: papa nativa", list="cultivos-sugeridos", autocomplete="off") }}
+<datalist id="cultivos-sugeridos">
+  {% for c in ["Papa nativa", "Ajo", "Arándano", "Frutilla", "Avellana", "Quínoa", "Miel", "Hortalizas"] %}<option value="{{ c }}">{% endfor %}
+</datalist>
+<div class="fila-campos">
+  {{ campo("kilos", "Kilos cosechados", valores.get("kilos", ""), tipo="number", sufijo="kg", required=true, min="0.1", step="any", inputmode="decimal") }}
+  {{ campo("fecha_cosecha", "Fecha de cosecha", valores.get("fecha_cosecha", hoy), tipo="date", required=true, max=hoy) }}
+</div>

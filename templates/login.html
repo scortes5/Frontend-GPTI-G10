@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, campo, csrf %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block publico %}
+<div class="acceso">
+  <section class="acceso__portada" aria-hidden="true">
+    <div class="acceso__marca">{{ icono("hoja") }}<span>AgroTracker</span></div>
+    <p class="acceso__lema">De la cosecha a la venta, con su origen a la vista.</p>
+    <ul class="acceso__puntos">
+      <li>{{ icono("lotes") }} Registra cada cosecha como un lote</li>
+      <li>{{ icono("qr") }} Identifícalo con su código QR</li>
+      <li>{{ icono("nube") }} Funciona aunque se corte la señal</li>
+    </ul>
+  </section>
+
+  <section class="acceso__tarjeta tarjeta">
+    <h1>Iniciar sesión</h1>
+    <p class="sutil">Cooperativa Newen al Sur</p>
+    <form method="post" action="{{ url_for('auth.login') }}" class="formulario">
+      {{ csrf() }}
+      <input type="hidden" name="siguiente" value="{{ siguiente }}">
+      {{ campo("email", "Correo", email, tipo="email", autocomplete="username", required=true, autofocus=true, inputmode="email") }}
+      {{ campo("clave", "Contraseña", tipo="password", autocomplete="current-password", required=true) }}
+      <button class="boton boton--primario boton--grande boton--bloque" type="submit">Entrar</button>
+    </form>
+    <div class="acceso__enlaces">
+      <a href="{{ url_for('auth.recuperar') }}">¿Olvidaste tu contraseña?</a>
+      <a href="{{ url_for('trazabilidad.ficha') }}">{{ icono("qr") }} Ver el origen de un lote</a>
+    </div>
+    <p class="sutil pequeño">¿No tienes cuenta? Pídela a la directiva de la cooperativa.</p>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono %}
+{% block titulo %}Inicio{% endblock %}
+{% block contenido %}
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo">Hola, {{ usuario.nombre.split(" ")[0] }}</p>
+    <h1>Resumen {{ "de la cooperativa" if es_admin else "de tus lotes" }}</h1>
+  </div>
+  <a class="boton boton--primario" href="{{ url_for('panel.lotes') }}#registrar">{{ icono("mas") }} Registrar cosecha</a>
+</header>
+
+<section class="indicadores" aria-label="Indicadores">
+  <article class="indicador">
+    <span class="indicador__icono">{{ icono("lotes") }}</span>
+    <span class="indicador__etiqueta">Lotes registrados</span>
+    <strong class="indicador__valor">{{ resumen.total_lotes|num(0) }}</strong>
+  </article>
+  <article class="indicador">
+    <span class="indicador__icono">{{ icono("hoja") }}</span>
+    <span class="indicador__etiqueta">Kilos cosechados</span>
+    <strong class="indicador__valor">{{ resumen.kilos_cosechados|num }}<small> kg</small></strong>
+  </article>
+  <article class="indicador">
+    <span class="indicador__icono">{{ icono("reloj") }}</span>
+    <span class="indicador__etiqueta">Kilos disponibles</span>
+    <strong class="indicador__valor">{{ resumen.kilos_disponibles|num }}<small> kg</small></strong>
+    {% if resumen.kilos_cosechados %}
+    <span class="indicador__nota">{{ (100 * resumen.kilos_vendidos / resumen.kilos_cosechados)|round|int }}% ya vendido</span>
+    {% endif %}
+  </article>
+  <article class="indicador indicador--destacado">
+    <span class="indicador__icono">{{ icono("ventas") }}</span>
+    <span class="indicador__etiqueta">Ingresos por ventas</span>
+    <strong class="indicador__valor">{{ resumen.ingresos|clp }}</strong>
+  </article>
+</section>
+
+<div class="rejilla-2">
+  <section class="tarjeta">
+    <h2>Kilos cosechados por cultivo</h2>
+    {% if cultivos %}
+    <ul class="barras">
+      {% for cultivo, kilos in cultivos %}
+      <li class="barras__fila">
+        <span class="barras__nombre">{{ cultivo }}</span>
+        <svg class="barras__barra" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+          <rect class="barras__fondo" width="100" height="10" rx="5"/>
+          <rect class="barras__valor" width="{{ (100 * kilos / maximo) if maximo else 0 }}" height="10" rx="5"/>
+        </svg>
+        <span class="barras__cifra">{{ kilos|kg }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="vacio">Aún no hay cosechas registradas.</p>
+    {% endif %}
+  </section>
+
+  <section class="tarjeta">
+    <h2>¿Qué quieres hacer?</h2>
+    <ul class="accesos">
+      <li><a href="{{ url_for('panel.lotes') }}#registrar">{{ icono("lotes") }}<span><strong>Registrar una cosecha</strong><small>Crea el lote y su código QR</small></span>{{ icono("flecha", "accesos__flecha") }}</a></li>
+      <li><a href="{{ url_for('panel.ventas') }}">{{ icono("ventas") }}<span><strong>Anotar una venta</strong><small>Comprador, kilos y precio</small></span>{{ icono("flecha", "accesos__flecha") }}</a></li>
+      <li><a href="{{ url_for('trazabilidad.ficha') }}">{{ icono("qr") }}<span><strong>Ver la trazabilidad</strong><small>Historial, reporte y recomendación</small></span>{{ icono("flecha", "accesos__flecha") }}</a></li>
+    </ul>
+  </section>
+</div>
+{% endblock %}

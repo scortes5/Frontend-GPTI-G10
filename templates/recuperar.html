@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, campo, csrf %}
+{% block titulo %}Recuperar contraseña{% endblock %}
+{% block publico %}
+<div class="acceso acceso--simple">
+  <section class="acceso__tarjeta tarjeta">
+    <a class="marca marca--compacta" href="{{ url_for('auth.login') }}"><span class="marca__logo">{{ icono("hoja") }}</span><strong>AgroTracker</strong></a>
+    <h1>Recuperar contraseña</h1>
+    <ol class="pasos" aria-label="Pasos">
+      <li {% if not email %}aria-current="step"{% endif %}>Pedir código</li>
+      <li {% if email %}aria-current="step"{% endif %}>Nueva contraseña</li>
+    </ol>
+
+    {% if not email %}
+    <p>Escribe el correo de tu cuenta y te enviaremos un código de 6 dígitos.</p>
+    <form method="post" class="formulario">
+      {{ csrf() }}
+      <input type="hidden" name="paso" value="pedir">
+      {{ campo("email", "Correo", tipo="email", autocomplete="email", required=true, autofocus=true, inputmode="email") }}
+      <button class="boton boton--primario boton--grande boton--bloque" type="submit">{{ icono("correo") }} Enviar código</button>
+    </form>
+    {% else %}
+    <div class="aviso aviso--info">{{ icono("correo") }}<span>Si <strong>{{ email }}</strong> está registrado, te llegó un código. Revisa también la carpeta de spam. Dura 15 minutos.</span></div>
+    <form method="post" class="formulario">
+      {{ csrf() }}
+      <input type="hidden" name="paso" value="cambiar">
+      {{ campo("codigo", "Código de 6 dígitos", inputmode="numeric", pattern="[0-9]{6}", maxlength="6", autocomplete="one-time-code", required=true, autofocus=true) }}
+      {{ campo("clave", "Nueva contraseña", tipo="password", ayuda="Mínimo 8 caracteres.", minlength="8", autocomplete="new-password", required=true) }}
+      {{ campo("confirmacion", "Repite la nueva contraseña", tipo="password", minlength="8", autocomplete="new-password", required=true) }}
+      <button class="boton boton--primario boton--grande boton--bloque" type="submit">Cambiar contraseña</button>
+    </form>
+    <form method="post">
+      {{ csrf() }}
+      <input type="hidden" name="paso" value="otro">
+      <button class="boton boton--enlace" type="submit">Pedir otro código</button>
+    </form>
+    {% endif %}
+    <div class="acceso__enlaces"><a href="{{ url_for('auth.login') }}">← Volver a iniciar sesión</a></div>
+  </section>
+</div>
+{% endblock %}
