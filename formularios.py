@@ -92,3 +92,23 @@ def usuario_nuevo(datos) -> dict:
         "clave": clave,
         "rol": rol,
     }
+
+
+def _coordenada(datos, campo: str, nombre: str, minimo: float, maximo: float) -> float:
+    crudo = str(datos.get(campo) or "").strip().replace(",", ".")
+    try:
+        valor = float(crudo)
+    except ValueError:
+        raise DatosInvalidos(f"Escribe la {nombre} como número (por ejemplo -38.74).") from None
+    if not minimo <= valor <= maximo:
+        raise DatosInvalidos(f"La {nombre} no corresponde a un lugar de Chile.")
+    return round(valor, 6)
+
+
+@_resultado
+def campo(datos) -> dict:
+    return {
+        "nombre": _texto(datos, "nombre", "nombre del campo", 120),
+        "latitud": _coordenada(datos, "latitud", "latitud", -56, -17),
+        "longitud": _coordenada(datos, "longitud", "longitud", -76, -66),
+    }

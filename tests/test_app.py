@@ -41,6 +41,7 @@ def backend(monkeypatch):
     falso("registrar_venta", lambda codigo, datos: {"id": 2, **datos})
     falso("lote_publico", {k: LOTE[k] for k in ("codigo", "productor", "cultivo", "kilos", "fecha_cosecha")})
     falso("listar_usuarios", [ADMIN, PRODUCTORA])
+    falso("clima", api.ErrorDeDatos("Aún no hay un campo registrado", 404))
     backend = type("Backend", (), {"llamadas": llamadas, "falso": staticmethod(falso)})
     return backend
 

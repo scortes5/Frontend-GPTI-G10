@@ -288,6 +288,33 @@
     });
   });
 
+  // ---------- Clima: ubicación del campo y gráfico ----------
+
+  $$("[data-pos-x]").forEach((el) => { el.style.left = el.dataset.posX + "%"; });
+
+  $$("[data-usar-ubicacion]").forEach((boton) => {
+    const form = boton.form;
+    const estado = $("[data-ubicacion-estado]", form);
+    if (!("geolocation" in navigator)) { boton.hidden = true; return; }
+    boton.addEventListener("click", () => {
+      boton.setAttribute("aria-busy", "true");
+      estado.textContent = "Buscando tu ubicación…";
+      navigator.geolocation.getCurrentPosition(
+        (posicion) => {
+          boton.removeAttribute("aria-busy");
+          form.elements.latitud.value = posicion.coords.latitude.toFixed(6);
+          form.elements.longitud.value = posicion.coords.longitude.toFixed(6);
+          estado.textContent = `Ubicación encontrada (precisión de unos ${Math.round(posicion.coords.accuracy)} m). Revisa y guarda.`;
+        },
+        () => {
+          boton.removeAttribute("aria-busy");
+          estado.textContent = "No pudimos obtener tu ubicación. Revisa el permiso del navegador o escribe las coordenadas.";
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+      );
+    });
+  });
+
   // ---------- Detalles de la interfaz ----------
 
   $$("form[data-requiere-red]").forEach((form) => {

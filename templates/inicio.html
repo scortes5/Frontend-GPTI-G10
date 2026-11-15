@@ -36,6 +36,26 @@
   </article>
 </section>
 
+{% if clima %}
+<a class="tarjeta clima-mini" href="{{ url_for('clima.clima') }}">
+  <span class="clima-mini__icono">{{ icono("sol") }}</span>
+  <span class="clima-mini__texto">
+    <strong>{{ clima.campo.nombre }} · {{ clima.actual.temperatura|num if clima.actual and clima.actual.temperatura is not none else "—" }} °C</strong>
+    <small>Mín {{ clima.resumen_24h.temperatura_min|num if clima.resumen_24h.temperatura_min is not none else "—" }}° · Máx {{ clima.resumen_24h.temperatura_max|num if clima.resumen_24h.temperatura_max is not none else "—" }}° · Lluvia {{ clima.resumen_24h.precipitacion|num }} mm · Estación {{ clima.estacion.nombre }}</small>
+  </span>
+  {% set urgentes = clima.alertas|selectattr("nivel", "ne", "info")|list %}
+  {% if urgentes %}<span class="pastilla pastilla--error">{{ urgentes[0].titulo }}{% if urgentes|length > 1 %} +{{ urgentes|length - 1 }}{% endif %}</span>
+  {% else %}<span class="pastilla pastilla--ok">Sin alertas</span>{% endif %}
+  {{ icono("flecha", "accesos__flecha") }}
+</a>
+{% elif sin_campo %}
+<a class="tarjeta clima-mini clima-mini--vacio" href="{{ url_for('clima.clima') }}">
+  <span class="clima-mini__icono">{{ icono("ubicacion") }}</span>
+  <span class="clima-mini__texto"><strong>Registra la ubicación de tu campo</strong><small>Verás el clima de la estación Agromet más cercana, alertas de helada y recomendaciones.</small></span>
+  {{ icono("flecha", "accesos__flecha") }}
+</a>
+{% endif %}
+
 <div class="rejilla-2">
   <section class="tarjeta">
     <h2>Kilos cosechados por cultivo</h2>

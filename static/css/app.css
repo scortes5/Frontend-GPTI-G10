@@ -540,6 +540,74 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .ficha-publica .datos-lote { width: 100%; text-align: left; margin: .5rem 0; }
 .ficha-publica__qr { width: 140px; border-radius: var(--radio-chico); background: #fff; padding: .4rem; border: 1px solid var(--borde); }
 
+/* ---------- Clima ---------- */
+
+.selector-campo { min-width: 260px; }
+.rejilla-clima { display: grid; gap: 1rem; margin-bottom: 1rem; }
+@media (min-width: 1000px) { .rejilla-clima { grid-template-columns: 1.15fr 1fr; align-items: start; } }
+.rejilla-clima > .tarjeta { margin-bottom: 0; }
+
+.tarjeta-mapa { padding: 0; overflow: hidden; }
+.mapa { display: block; width: 100%; height: 300px; border: 0; background: var(--superficie-2); }
+.tarjeta-mapa__pie { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem 1rem; padding: .9rem 1.25rem; }
+.tarjeta-mapa__pie > div:first-child { display: grid; }
+.tarjeta-mapa__pie strong { display: flex; align-items: center; gap: .35rem; }
+.tarjeta-mapa__pie small { color: var(--texto-suave); font-family: var(--mono); font-size: .85rem; }
+.tarjeta-mapa__acciones { display: flex; gap: 1rem; font-weight: 600; font-size: .95rem; }
+.estacion { display: flex; gap: .6rem; align-items: flex-start; margin: 0; padding: .8rem 1.25rem 1rem; border-top: 1px solid var(--borde); color: var(--texto-suave); font-size: .95rem; }
+.estacion .icono { color: var(--primario); margin-top: .1rem; }
+
+.ahora { display: grid; gap: 1rem; }
+@media (min-width: 520px) { .ahora { grid-template-columns: auto 1fr; align-items: center; } }
+.ahora__principal { display: grid; gap: .1rem; }
+.ahora__etiqueta { font-weight: 600; color: var(--texto-suave); font-size: .9rem; }
+.ahora__temp { font-size: 3.2rem; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.ahora__temp small { font-size: .45em; color: var(--texto-suave); margin-left: .1em; }
+.ahora__datos { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.ahora__datos li { display: grid; grid-template-columns: auto 1fr auto; gap: .6rem; align-items: center; padding: .55rem .75rem; border-radius: var(--radio-chico); background: var(--superficie-2); }
+.ahora__datos .icono { color: var(--info); }
+.ahora__datos span { color: var(--texto-suave); }
+.ahora__datos strong { font-variant-numeric: tabular-nums; }
+
+.alertas { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.alerta { display: grid; gap: .15rem; padding: .7rem .9rem; border-radius: var(--radio-chico); border-left: 5px solid var(--info); background: var(--info-suave); }
+.alerta span { color: var(--texto); font-size: .95rem; }
+.alerta--alta { border-color: var(--peligro); background: var(--peligro-suave); }
+.alerta--alta strong { color: var(--peligro); }
+.alerta--media { border-color: var(--aviso); background: var(--aviso-suave); }
+.alerta--media strong { color: var(--aviso); }
+.alerta--info strong { color: var(--info); }
+
+.leyenda { display: flex; gap: 1rem; font-size: .88rem; color: var(--texto-suave); }
+.leyenda span::before { content: ""; display: inline-block; width: .8rem; height: .8rem; border-radius: 3px; margin-right: .35rem; vertical-align: -1px; }
+.leyenda__temp::before { background: var(--acento); }
+.leyenda__lluvia::before { background: color-mix(in srgb, var(--info) 55%, transparent); }
+.grafico { position: relative; padding-top: 1.4rem; }
+.grafico__svg { display: block; width: 100%; height: 200px; overflow: visible; }
+.grafico__linea { fill: none; stroke: var(--acento); stroke-width: 2.5; stroke-linejoin: round; }
+.grafico__area { fill: color-mix(in srgb, var(--acento) 14%, transparent); stroke: none; }
+.grafico__lluvia { fill: color-mix(in srgb, var(--info) 55%, transparent); }
+.grafico__cero { stroke: var(--info); stroke-dasharray: 4 4; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.grafico__marca { position: absolute; transform: translateX(-50%); font-size: .82rem; font-weight: 700; padding: .05rem .4rem; border-radius: 6px; white-space: nowrap; }
+.grafico__marca--max { top: 0; background: var(--acento-suave); color: var(--tierra-700); }
+.grafico__marca--min { bottom: -.4rem; background: var(--info-suave); color: var(--info); }
+.grafico__eje { position: relative; height: 1.6rem; margin-top: .9rem; border-top: 1px solid var(--borde); }
+.grafico__eje span { position: absolute; top: .3rem; transform: translateX(-50%); font-size: .78rem; color: var(--texto-suave); white-space: nowrap; }
+
+.clima-mini { display: flex; align-items: center; gap: .9rem; text-decoration: none; color: var(--texto); }
+.clima-mini:hover { border-color: var(--verde-200); }
+.clima-mini__icono { display: grid; place-items: center; flex: none; width: 3rem; height: 3rem; border-radius: 14px; background: var(--acento-suave); color: var(--tierra-700); }
+.clima-mini__icono .icono { width: 1.6rem; height: 1.6rem; }
+.clima-mini__texto { display: grid; flex: 1; min-width: 0; }
+.clima-mini__texto small { color: var(--texto-suave); }
+.clima-mini--vacio { border-style: dashed; }
+.pastilla--ok { background: var(--ok-suave); color: var(--ok); }
+@media (max-width: 520px) { .clima-mini { flex-wrap: wrap; } .clima-mini .pastilla { order: 3; } }
+
+.lista-beneficios { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
+.lista-beneficios li { display: flex; gap: .7rem; align-items: flex-start; }
+.lista-beneficios .icono { color: var(--primario); width: 1.5rem; height: 1.5rem; flex: none; }
+
 /* ---------- Impresión: solo la etiqueta del QR ---------- */
 
 @media print {

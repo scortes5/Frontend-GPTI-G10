@@ -167,3 +167,27 @@ def actualizar_usuario(usuario_id: int, cambios: dict) -> dict:
 def qr_png(codigo: str) -> bytes:
     """PNG del QR del lote (público). Se sirve a través de Flask para que el service worker lo guarde."""
     return _respuesta("GET", f"/lotes/{_segmento(codigo)}/qr").content
+
+
+def _consulta_usuario(usuario_id) -> dict:
+    return {"usuario_id": usuario_id} if usuario_id else {}
+
+
+def mi_campo(usuario_id: int | None = None) -> dict:
+    return _request("GET", "/campo", params=_consulta_usuario(usuario_id))
+
+
+def guardar_campo(data: dict) -> dict:
+    return _request("PUT", "/campo", json=data)
+
+
+def listar_campos() -> list[dict]:
+    return _request("GET", "/campos")
+
+
+def clima(usuario_id: int | None = None) -> dict:
+    return _request("GET", "/clima", params=_consulta_usuario(usuario_id))
+
+
+def recomendacion_clima(usuario_id: int | None = None) -> str:
+    return _request("GET", "/clima/recomendacion", params=_consulta_usuario(usuario_id))["texto"]

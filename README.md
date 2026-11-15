@@ -31,6 +31,7 @@ sesion.py              # sesión en cookie firmada y token CSRF
 formularios.py         # validación compartida por formularios y API de la cola
 rutas/auth.py          # iniciar/cerrar sesión, recuperar contraseña
 rutas/panel.py         # inicio, lotes, ventas, usuarios (admin)
+rutas/clima.py         # dashboard de clima: mapa del campo, estación Agromet, alertas, gráfico, IA
 rutas/trazabilidad.py  # ficha del lote (destino del QR), reporte por correo, recomendación IA
 rutas/cola.py          # API JSON que usa la cola sin conexión
 rutas/pwa.py           # /sw.js, manifiesto, /offline y QR
@@ -81,6 +82,8 @@ pytest
 | `FLASK_SECRET_KEY` | Firma la cookie de sesión. Sin ella se usa una temporal y las sesiones se pierden al reiniciar. |
 | `PORT` | Puerto (8501 por defecto). |
 | `COOKIE_SEGURA` | `1` con HTTPS. |
+
+El mapa del campo se muestra con OpenStreetMap (iframe permitido en la CSP con `frame-src`).
 
 La arquitectura de despliegue está en el README del backend.
 
@@ -133,7 +136,12 @@ revises. Las páginas que ya abriste se pueden mirar sin señal.
 - **Ver el historial de un lote:** menú **Trazabilidad** → escribe el código del lote.
   Ahí puedes **enviar el reporte por correo** (por ejemplo, a un auditor) y pedir una
   **recomendación** para conservar y vender lo que queda.
-- En **Inicio** ves un resumen de tus kilos e ingresos.
+- **Clima de tu campo:** menú **Clima**. La primera vez escribe el nombre de tu campo y presiona
+  **Usar mi ubicación actual** (hazlo parado en el campo) o escribe las coordenadas, y
+  **Guardar ubicación**. Verás el mapa, el clima de la estación más cercana de la Red
+  Agroclimática Nacional, avisos de helada, lluvia, calor, viento u hongos, y el gráfico de las
+  últimas 48 horas. Presiona **¿Qué debo tomar en consideración?** para una recomendación con IA.
+- En **Inicio** ves un resumen de tus kilos e ingresos, y el clima de tu campo.
 
 Solo ves tus propios lotes.
 
@@ -148,6 +156,7 @@ Puedes hacer todo lo anterior con los lotes de **todos** los socios, y además:
 - **Eliminar un lote:** en **Lotes** → **Ver y editar**, marca la confirmación y presiona **Eliminar lote**
   (también borra sus ventas).
 - En **Inicio** ves el resumen de toda la cooperativa.
+- En **Clima** puedes elegir el campo de cualquier socio en **Ver campo de**.
 
 ### Para compradores y auditores (sin cuenta)
 

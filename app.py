@@ -6,7 +6,7 @@ firmada. El JavaScript agrega la cola sin conexión y el service worker (PWA).
 import logging
 import os
 import secrets
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from dotenv import load_dotenv
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
@@ -14,7 +14,7 @@ from markupsafe import Markup, escape
 
 import api
 import sesion
-from rutas import auth, cola, panel, pwa, trazabilidad
+from rutas import auth, clima, cola, panel, pwa, trazabilidad
 
 load_dotenv()
 
@@ -40,7 +40,7 @@ def create_app(config: dict | None = None) -> Flask:
     if config:
         app.config.update(config)
 
-    for blueprint in (auth.bp, panel.bp, trazabilidad.bp, cola.bp, pwa.bp):
+    for blueprint in (auth.bp, panel.bp, clima.bp, trazabilidad.bp, cola.bp, pwa.bp):
         app.register_blueprint(blueprint)
 
     app.jinja_env.globals["csrf_token"] = sesion.csrf_token  # global: lo usan las macros importadas
@@ -81,7 +81,8 @@ def registrar_seguridad(app: Flask) -> None:
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
-            "base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+            "base-uri 'self'; form-action 'self'; frame-ancestors 'none'; "
+            "frame-src https://www.openstreetmap.org",  # mapa del campo
         )
         if response.mimetype == "text/html":
             # Las páginas con datos del usuario no quedan en la caché HTTP; el service worker
@@ -134,6 +135,13 @@ def registrar_filtros(app: Flask) -> None:
     def fecha(valor) -> str:
         try:
             return date.fromisoformat(str(valor)[:10]).strftime("%d-%m-%Y")
+        except ValueError:
+            return str(valor)
+
+    @app.template_filter("hora")
+    def hora(valor) -> str:
+        try:
+            return datetime.fromisoformat(str(valor)).strftime("%d-%m %H:%M")
         except ValueError:
             return str(valor)
 

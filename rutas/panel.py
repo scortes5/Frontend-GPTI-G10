@@ -15,7 +15,17 @@ def inicio():
     resumen = api.resumen()
     cultivos = sorted(resumen["kilos_por_cultivo"].items(), key=lambda par: par[1], reverse=True)
     maximo = max((kilos for _, kilos in cultivos), default=0)
-    return render_template("inicio.html", resumen=resumen, cultivos=cultivos, maximo=maximo)
+    return render_template("inicio.html", resumen=resumen, cultivos=cultivos, maximo=maximo, **_clima_resumido())
+
+
+def _clima_resumido() -> dict:
+    """Tarjeta de clima en Inicio. Si el clima no está disponible, Inicio se muestra igual."""
+    try:
+        return {"clima": api.clima(), "sin_campo": False}
+    except api.ErrorDeDatos as e:
+        return {"clima": None, "sin_campo": e.status == 404}
+    except api.BackendError:
+        return {"clima": None, "sin_campo": False}
 
 
 # ---------- Lotes ----------
