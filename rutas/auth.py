@@ -30,7 +30,12 @@ def login():
             else:
                 sesion.iniciar(respuesta["access_token"], respuesta["usuario"])
                 return redirect(siguiente)
-    return render_template("login.html", email=email, siguiente=siguiente), 200 if request.method == "GET" else 400
+    # El formulario se abre directo si se envió con error o si se llegó desde una página protegida.
+    mostrar_formulario = request.method == "POST" or "siguiente" in request.args or "entrar" in request.args
+    return (
+        render_template("login.html", email=email, siguiente=siguiente, mostrar_formulario=mostrar_formulario),
+        200 if request.method == "GET" else 400,
+    )
 
 
 @bp.post("/logout")

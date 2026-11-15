@@ -315,6 +315,108 @@
     });
   });
 
+  // ---------- Entrada: mostrar el formulario al elegir "Iniciar sesión" ----------
+
+  $$("[data-oculto-con-js]").forEach((el) => { el.hidden = true; });
+  $$("[data-mostrar]").forEach((enlace) => {
+    enlace.addEventListener("click", (evento) => {
+      const destino = document.getElementById(enlace.dataset.mostrar);
+      if (!destino) return;
+      evento.preventDefault();
+      destino.hidden = false;
+      enlace.setAttribute("aria-expanded", "true");
+      destino.scrollIntoView({ behavior: "smooth", block: "start" });
+      const primero = $("input:not([type=hidden])", destino);
+      if (primero) setTimeout(() => primero.focus(), 250);
+    });
+  });
+
+  // ---------- Escáner de QR (cámara + BarcodeDetector del navegador) ----------
+
+  function codigoDesdeQr(texto) {
+    // Los QR de AgroTracker llevan la URL de la ficha (…/Trazabilidad?codigo=XXXX). Solo se toma el
+    // código: nunca se navega a la URL leída, así un QR ajeno no puede llevar a otro sitio.
+    try {
+      const url = new URL(texto);
+      const codigo = url.searchParams.get("codigo");
+      if (codigo) return codigo;
+    } catch (_) { /* no es una URL */ }
+    const limpio = texto.trim();
+    return /^[A-Za-z0-9-]{4,40}$/.test(limpio) ? limpio : null;
+  }
+
+  $$("[data-escaner]").forEach((caja) => {
+    const estado = $("[data-escaner-estado]", caja);
+    const visor = $("[data-escaner-visor]", caja);
+    const video = $("[data-escaner-video]", caja);
+    const iniciar = $("[data-escaner-iniciar]", caja);
+    const alternativa = $("[data-escaner-alternativa]", caja);
+    const soportado = "BarcodeDetector" in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    let flujo = null;
+
+    function detener() {
+      if (flujo) flujo.getTracks().forEach((pista) => pista.stop());
+      flujo = null;
+    }
+    window.addEventListener("pagehide", detener);
+
+    if (!soportado) {
+      iniciar.hidden = true;
+      alternativa.hidden = false;
+      return;
+    }
+
+    iniciar.addEventListener("click", async () => {
+      let detector;
+      try {
+        const formatos = await BarcodeDetector.getSupportedFormats();
+        if (!formatos.includes("qr_code")) throw new Error("sin qr_code");
+        detector = new BarcodeDetector({ formats: ["qr_code"] });
+        flujo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      } catch (e) {
+        detener();
+        iniciar.hidden = true;
+        alternativa.hidden = false;
+        estado.textContent = e && e.name === "NotAllowedError"
+          ? "No diste permiso para usar la cámara. Puedes activarlo en los ajustes del navegador o escribir el código."
+          : "No pudimos abrir la cámara.";
+        return;
+      }
+      video.srcObject = flujo;
+      await video.play();
+      visor.hidden = false;
+      iniciar.hidden = true;
+      estado.textContent = "Buscando un código QR…";
+
+      // Se lee desde un canvas con el cuadro actual: más confiable que leer el <video> directamente.
+      const lienzo = document.createElement("canvas");
+      const pincel = lienzo.getContext("2d", { willReadFrequently: true });
+      const buscar = async () => {
+        if (!flujo) return;
+        try {
+          if (!video.videoWidth) throw new Error("sin cuadro");
+          lienzo.width = video.videoWidth;
+          lienzo.height = video.videoHeight;
+          pincel.drawImage(video, 0, 0);
+          const encontrados = await detector.detect(lienzo);
+          for (const encontrado of encontrados) {
+            const codigo = codigoDesdeQr(encontrado.rawValue || "");
+            if (codigo) {
+              estado.textContent = "¡Código leído! Abriendo la ficha…";
+              detener();
+              if (navigator.vibrate) navigator.vibrate(80);
+              window.location.assign(`${caja.dataset.destino}?codigo=${encodeURIComponent(codigo)}`);
+              return;
+            }
+            estado.textContent = "Ese QR no es de AgroTracker. Prueba con el de la caja o etiqueta.";
+          }
+        } catch (_) { /* cuadro sin imagen todavía */ }
+        setTimeout(buscar, 250);
+      };
+      buscar();
+    });
+  });
+
   // ---------- Detalles de la interfaz ----------
 
   $$("form[data-requiere-red]").forEach((form) => {

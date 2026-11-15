@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono %}
+{% block titulo %}Escanear QR{% endblock %}
+
+{% macro lector() %}
+<section class="tarjeta escaner" data-escaner data-destino="{{ url_for('trazabilidad.ficha') }}">
+  <h1>{{ icono("qr") }} Escanear código QR</h1>
+  <p class="sutil" data-escaner-estado>Apunta la cámara al código QR de la caja o etiqueta.</p>
+
+  <div class="escaner__visor" data-escaner-visor hidden>
+    <video data-escaner-video playsinline muted></video>
+    <span class="escaner__marco" aria-hidden="true"></span>
+  </div>
+
+  <button type="button" class="boton boton--primario boton--grande boton--bloque" data-escaner-iniciar>{{ icono("qr") }} Activar cámara</button>
+
+  <div class="escaner__alternativa" data-escaner-alternativa hidden>
+    <div class="aviso aviso--info">{{ icono("alerta") }}<span>Este navegador no puede leer el QR aquí. Abre la <strong>cámara del teléfono</strong>, apunta al código y toca el enlace que aparece. También puedes escribir el código.</span></div>
+  </div>
+
+  <form method="get" action="{{ url_for('trazabilidad.ficha') }}" class="buscador-lote">
+    <label class="campo">
+      <span class="campo__etiqueta">O escribe el código del lote</span>
+      <span class="campo__control"><input type="text" name="codigo" placeholder="Ej: 5e34c1e8880e" autocomplete="off" autocapitalize="off" required></span>
+    </label>
+    <button class="boton boton--suave" type="submit">{{ icono("buscar") }} Buscar</button>
+  </form>
+</section>
+{% endmacro %}
+
+{% block publico %}
+<div class="publico__marco">
+  <a class="marca marca--compacta" href="{{ url_for('auth.login') }}"><span class="marca__logo">{{ icono("hoja") }}</span><strong>AgroTracker</strong></a>
+  {{ lector() }}
+  <p class="centrado"><a href="{{ url_for('auth.login') }}">← Volver</a></p>
+</div>
+{% endblock %}
+
+{% block contenido %}{{ lector() }}{% endblock %}

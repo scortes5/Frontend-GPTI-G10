@@ -194,3 +194,22 @@ def test_csrf_obligatorio(backend):
     assert cliente.post("/api/lotes", json={}).status_code == 403
     respuesta = cliente.post("/login", data={"email": "a@b.cl", "clave": "x", "csrf": token})
     assert respuesta.status_code == 302 and respuesta.headers["Location"] == "/"
+
+
+def test_entrada_ofrece_escanear_o_iniciar_sesion(cliente):
+    respuesta = cliente.get("/")
+    assert respuesta.headers["Location"] == "/login"  # sin ?siguiente: se ven las dos opciones
+    html = cliente.get("/login").get_data(as_text=True)
+    assert "Escanear código QR" in html and "Iniciar sesión" in html
+    assert "data-oculto-con-js" in html  # el formulario se despliega al elegir "Iniciar sesión"
+
+
+def test_desde_pagina_protegida_se_abre_el_formulario(cliente):
+    destino = cliente.get("/lotes").headers["Location"]
+    html = cliente.get(destino).get_data(as_text=True)
+    assert "data-oculto-con-js" not in html
+
+
+def test_escaner_es_publico(cliente):
+    html = cliente.get("/escanear").get_data(as_text=True)
+    assert "data-escaner" in html and "Activar cámara" in html

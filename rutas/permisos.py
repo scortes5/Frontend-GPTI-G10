@@ -11,6 +11,8 @@ def requiere_sesion(vista):
         if not sesion.activa():
             if request.path.startswith("/api/"):
                 return jsonify(detail="Inicia sesión para continuar."), 401
+            if request.path == "/":  # abrir la app: pantalla de entrada con sus dos opciones
+                return redirect(url_for("auth.login"))
             return redirect(url_for("auth.login", siguiente=request.full_path))
         return vista(*args, **kwargs)
 

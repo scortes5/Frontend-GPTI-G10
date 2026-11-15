@@ -95,7 +95,7 @@ mostrar su origen con un **código QR**.
 ### Entrar
 
 1. Abre la página que te entregó la cooperativa.
-2. Escribe tu **correo** y **contraseña** y presiona **Entrar**.
+2. Presiona **Iniciar sesión**, escribe tu **correo** y **contraseña** y presiona **Entrar**.
 3. Para salir, usa **Cerrar sesión** (menú de la izquierda en computador, botón arriba a la derecha en el teléfono). Hazlo siempre en computadores
    compartidos.
 
@@ -160,5 +160,7 @@ Puedes hacer todo lo anterior con los lotes de **todos** los socios, y además:
 
 ### Para compradores y auditores (sin cuenta)
 
-Escanea el código QR del lote con la cámara del teléfono. Se abre la ficha con el origen del
-lote: productor, cultivo, fecha de cosecha y kilos. Las ventas y precios no se muestran.
+Abre AgroTracker y presiona **Escanear código QR**, permite usar la cámara y apunta al QR de la
+caja (en Chrome y Android se lee dentro de la página). También sirve escanearlo con la cámara del
+teléfono, o escribir el código del lote. Se abre la ficha con el origen del lote: productor,
+cultivo, fecha de cosecha y kilos. Las ventas y precios no se muestran.

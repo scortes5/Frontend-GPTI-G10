@@ -34,10 +34,16 @@ def _ficha(codigo: str, recomendacion: str | None = None, status: int = 200):
     )
 
 
-@bp.get("/trazabilidad")
 @bp.get("/Trazabilidad")  # ruta que ya tienen impresa los QR generados
+@bp.get("/trazabilidad")  # la de abajo se registra primero: es la que genera url_for
 def ficha():
     return _ficha(request.args.get("codigo", "").strip())
+
+
+@bp.get("/escanear")
+def escanear():
+    """Lector de QR con la cámara (pública: compradores y auditores no tienen cuenta)."""
+    return render_template("escanear.html")
 
 
 @bp.post("/trazabilidad/<codigo>/reporte")

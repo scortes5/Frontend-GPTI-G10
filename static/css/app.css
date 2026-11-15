@@ -515,23 +515,6 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .acceso__tarjeta .formulario { margin-top: 1rem; }
 .acceso__enlaces { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; margin-top: 1rem; font-weight: 600; }
 .acceso__enlaces a { display: inline-flex; align-items: center; gap: .35rem; }
-.acceso__portada {
-  display: none; border-radius: var(--radio); padding: 2.5rem; color: #f3f7f1;
-  background:
-    radial-gradient(circle at 85% 15%, rgb(224 163 92 / .35), transparent 40%),
-    radial-gradient(circle at 10% 90%, rgb(127 191 138 / .3), transparent 45%),
-    linear-gradient(150deg, #2f5d3a, #1d3a25);
-}
-.acceso__marca { display: flex; align-items: center; gap: .6rem; font-size: 1.3rem; font-weight: 700; }
-.acceso__marca .icono { width: 2rem; height: 2rem; }
-.acceso__lema { font-size: 1.9rem; line-height: 1.2; font-weight: 700; margin: 2.5rem 0; letter-spacing: -0.02em; }
-.acceso__puntos { list-style: none; padding: 0; margin: 0; display: grid; gap: .9rem; }
-.acceso__puntos li { display: flex; gap: .7rem; align-items: center; color: rgb(243 247 241 / .9); }
-@media (min-width: 860px) {
-  .acceso { grid-template-columns: 1.1fr 1fr; align-items: stretch; }
-  .acceso--simple { grid-template-columns: 1fr; }
-  .acceso__portada { display: block; }
-}
 
 .ficha-publica { text-align: center; display: grid; justify-items: center; gap: .5rem; padding: 2rem 1.25rem; margin: 0; }
 .ficha-publica h1 { margin: .5rem 0 0; font-size: 2.2rem; }
@@ -539,6 +522,48 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .ficha-publica__productor { color: var(--texto-suave); font-size: 1.05rem; }
 .ficha-publica .datos-lote { width: 100%; text-align: left; margin: .5rem 0; }
 .ficha-publica__qr { width: 140px; border-radius: var(--radio-chico); background: #fff; padding: .4rem; border: 1px solid var(--borde); }
+
+/* ---------- Entrada: escanear QR o iniciar sesión ---------- */
+
+.entrada { width: 100%; max-width: 520px; margin: 0 auto; display: grid; gap: 1.25rem; }
+.entrada__marca { display: flex; align-items: center; gap: .75rem; }
+.entrada__marca .marca__logo { width: 3rem; height: 3rem; border-radius: 14px; }
+.entrada__marca div { display: grid; line-height: 1.2; }
+.entrada__marca strong { font-size: 1.3rem; }
+.entrada__marca small { color: var(--texto-suave); }
+.entrada__titulo { margin: .5rem 0 0; }
+.entrada__opciones { display: grid; gap: .9rem; }
+.opcion-grande {
+  display: flex; align-items: center; gap: 1rem;
+  min-height: 6.5rem; padding: 1.25rem;
+  border: 1.5px solid var(--borde); border-radius: var(--radio);
+  background: var(--superficie); color: var(--texto); text-decoration: none;
+  box-shadow: var(--sombra); transition: border-color .15s, transform .05s;
+}
+.opcion-grande:hover { border-color: var(--verde-200); }
+.opcion-grande:active { transform: translateY(1px); }
+.opcion-grande[aria-expanded="true"] { border-color: var(--primario); }
+.opcion-grande__icono { display: grid; place-items: center; flex: none; width: 3.75rem; height: 3.75rem; border-radius: 16px; background: var(--primario-suave); color: var(--primario); }
+.opcion-grande__icono .icono { width: 2rem; height: 2rem; }
+.opcion-grande__texto { display: grid; gap: .2rem; flex: 1; }
+.opcion-grande__texto strong { font-size: 1.25rem; }
+.opcion-grande__texto small { color: var(--texto-suave); font-size: .95rem; }
+.opcion-grande__flecha { color: var(--texto-suave); }
+.opcion-grande--qr { background: var(--verde-700); border-color: var(--verde-700); color: #fff; }
+.opcion-grande--qr:hover { border-color: var(--verde-900); background: var(--verde-900); }
+.opcion-grande--qr .opcion-grande__icono { background: rgb(255 255 255 / .15); color: #fff; }
+.opcion-grande--qr small, .opcion-grande--qr .opcion-grande__flecha { color: rgb(255 255 255 / .8); }
+.entrada__formulario { margin: 0; scroll-margin-top: 1rem; }
+.entrada__formulario h2 { margin-bottom: .25rem; }
+.entrada__codigo { text-align: center; margin: 0; }
+
+.escaner { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin: 0; min-width: 0; }
+.escaner h1 { display: flex; align-items: center; gap: .6rem; margin: 0; }
+.escaner h1 .icono { color: var(--primario); }
+.escaner p { margin: 0; }
+.escaner__visor { position: relative; overflow: hidden; border-radius: var(--radio); background: #000; width: 100%; max-width: 480px; aspect-ratio: 1; justify-self: center; }
+.escaner__visor video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.escaner__marco { position: absolute; inset: 18%; border: 4px solid rgb(255 255 255 / .9); border-radius: 18px; box-shadow: 0 0 0 999px rgb(0 0 0 / .35); }
 
 /* ---------- Clima ---------- */
 
