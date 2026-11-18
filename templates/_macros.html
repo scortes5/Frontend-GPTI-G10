@@ -1,0 +1,48 @@
+{% macro icono(nombre, clase="") -%}
+<svg class="icono {{ clase }}" aria-hidden="true" focusable="false"><use href="#i-{{ nombre }}"></use></svg>
+{%- endmacro %}
+
+{% macro campo(nombre, etiqueta, valor="", tipo="text", ayuda=None, sufijo=None) -%}
+<label class="campo">
+  <span class="campo__etiqueta">{{ etiqueta }}</span>
+  <span class="campo__control{% if sufijo %} campo__control--sufijo{% endif %}">
+    <input name="{{ nombre }}" type="{{ tipo }}" value="{{ valor if valor is not none else '' }}" {{ kwargs|xmlattr }}>
+    {% if sufijo %}<span class="campo__sufijo">{{ sufijo }}</span>{% endif %}
+  </span>
+  {% if ayuda %}<span class="campo__ayuda">{{ ayuda }}</span>{% endif %}
+</label>
+{%- endmacro %}
+
+{% macro csrf() -%}
+<input type="hidden" name="csrf" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro dato(etiqueta, valor, clase="") -%}
+<div class="dato {{ clase }}">
+  <span class="dato__etiqueta">{{ etiqueta }}</span>
+  <span class="dato__valor">{{ valor }}</span>
+</div>
+{%- endmacro %}
+
+{% macro tabla_ventas(ventas) -%}
+{% if ventas %}
+<div class="tabla-marco">
+  <table class="tabla">
+    <thead><tr><th>Fecha</th><th>Comprador</th><th class="num">Kilos</th><th class="num">Precio/kg</th><th class="num">Total</th></tr></thead>
+    <tbody>
+    {% for v in ventas|sort(attribute="fecha", reverse=true) %}
+      <tr>
+        <td data-etiqueta="Fecha">{{ v.fecha|fecha }}</td>
+        <td data-etiqueta="Comprador">{{ v.comprador }}</td>
+        <td data-etiqueta="Kilos" class="num">{{ v.kilos|kg }}</td>
+        <td data-etiqueta="Precio/kg" class="num">{{ v.precio_por_kilo|clp }}</td>
+        <td data-etiqueta="Total" class="num fuerte">{{ (v.kilos * v.precio_por_kilo)|clp }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="vacio">Este lote aún no tiene ventas.</p>
+{% endif %}
+{%- endmacro %}

@@ -1,0 +1,25 @@
+{
+  "name": "AgroTracker · Newen al Sur",
+  "short_name": "AgroTracker",
+  "description": "Trazabilidad y gestión de cosecha para la Cooperativa Newen al Sur.",
+  "lang": "es-CL",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f3ec",
+  "theme_color": "#2f5d3a",
+  "categories": ["productivity", "business"],
+  "icons": [
+    { "src": "/static/img/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/img/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/img/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/static/img/icono.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "Registrar lote", "url": "/lotes#registrar", "icons": [{ "src": "/static/img/icono-192.png", "sizes": "192x192" }] },
+    { "name": "Registrar venta", "url": "/ventas", "icons": [{ "src": "/static/img/icono-192.png", "sizes": "192x192" }] },
+    { "name": "Trazabilidad", "url": "/trazabilidad", "icons": [{ "src": "/static/img/icono-192.png", "sizes": "192x192" }] }
+  ]
+}

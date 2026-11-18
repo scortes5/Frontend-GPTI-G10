@@ -1,0 +1,111 @@
+{% from "_macros.html" import icono, csrf %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block titulo %}AgroTracker{% endblock %} · AgroTracker</title>
+  <meta name="description" content="Trazabilidad y gestión de cosecha · Cooperativa Newen al Sur">
+  <meta name="theme-color" content="#2f5d3a">
+  <meta name="csrf" content="{{ csrf_token() }}">
+  <link rel="manifest" href="{{ url_for('pwa.manifiesto') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/icono.svg') }}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icono-192.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script src="{{ url_for('static', filename='js/cola.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body class="{{ 'con-sesion' if usuario else 'sin-sesion' }}" {% if usuario %}data-usuario-id="{{ usuario.id }}"{% endif %}>
+{% include "_iconos.html" %}
+<div class="banda-red" data-banda-red hidden>
+  {{ icono("sin-red") }}
+  <span>Sin conexión. Lo que registres quedará guardado en este equipo y se enviará solo al volver la señal.</span>
+</div>
+
+{% set seccion = request.endpoint %}
+{% macro enlace(endpoint, nombre, texto) -%}
+<a href="{{ url_for(endpoint) }}" class="nav__enlace" {% if seccion == endpoint or (endpoint == 'panel.lotes' and seccion == 'panel.lote') %}aria-current="page"{% endif %}>
+  {{ icono(nombre) }}<span>{{ texto }}</span>
+</a>
+{%- endmacro %}
+
+{% if usuario %}
+<div class="marco">
+  <aside class="lateral">
+    <a class="marca" href="{{ url_for('panel.inicio') }}">
+      <span class="marca__logo">{{ icono("hoja") }}</span>
+      <span class="marca__texto"><strong>AgroTracker</strong><small>Newen al Sur</small></span>
+    </a>
+    <nav class="nav" aria-label="Principal">
+      {{ enlace("panel.inicio", "inicio", "Inicio") }}
+      {{ enlace("panel.lotes", "lotes", "Lotes") }}
+      {{ enlace("panel.ventas", "ventas", "Ventas") }}
+      {{ enlace("clima.clima", "sol", "Clima") }}
+      {{ enlace("trazabilidad.ficha", "qr", "Trazabilidad") }}
+      {% if es_admin %}{{ enlace("panel.usuarios", "usuarios", "Usuarios") }}{% endif %}
+    </nav>
+    <div class="lateral__pie">
+      <div class="perfil">
+        <span class="perfil__avatar" aria-hidden="true">{{ usuario.nombre[:1]|upper }}</span>
+        <span class="perfil__texto"><strong>{{ usuario.nombre }}</strong><small>{{ ROLES[usuario.rol] }}</small></span>
+      </div>
+      <form method="post" action="{{ url_for('auth.logout') }}" data-cerrar-sesion>
+        {{ csrf() }}
+        <button class="boton boton--fantasma boton--bloque" type="submit">{{ icono("salir") }} Cerrar sesión</button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="principal">
+    <header class="barra">
+      <a class="marca marca--compacta" href="{{ url_for('panel.inicio') }}">
+        <span class="marca__logo">{{ icono("hoja") }}</span><strong>AgroTracker</strong>
+      </a>
+      <div class="barra__acciones">
+        <button type="button" class="chip-cola" data-cola-abrir hidden>
+          {{ icono("nube") }}<span><b data-cola-cuenta>0</b> <span data-cola-texto>pendientes</span></span>
+        </button>
+        <form method="post" action="{{ url_for('auth.logout') }}" class="solo-movil" data-cerrar-sesion>
+          {{ csrf() }}
+          <button class="boton-icono" type="submit" aria-label="Cerrar sesión">{{ icono("salir") }}</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="contenido" id="contenido">
+      {% include "_avisos.html" %}
+      {% block contenido %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<nav class="nav-inferior" aria-label="Principal">
+  {{ enlace("panel.inicio", "inicio", "Inicio") }}
+  {{ enlace("panel.lotes", "lotes", "Lotes") }}
+  {{ enlace("panel.ventas", "ventas", "Ventas") }}
+  {{ enlace("clima.clima", "sol", "Clima") }}
+  {{ enlace("trazabilidad.ficha", "qr", "Origen") }}
+  {% if es_admin %}{{ enlace("panel.usuarios", "usuarios", "Usuarios") }}{% endif %}
+</nav>
+
+<dialog class="panel-cola" data-cola-panel aria-labelledby="titulo-cola">
+  <div class="panel-cola__cabeza">
+    <h2 id="titulo-cola">Pendientes de enviar</h2>
+    <button type="button" class="boton-icono" data-cola-cerrar aria-label="Cerrar">✕</button>
+  </div>
+  <p class="panel-cola__ayuda">Se guardaron en este equipo porque no había conexión. Se envían solos cuando vuelve la señal.</p>
+  <ul class="lista-cola" data-cola-items></ul>
+  <div class="panel-cola__pie">
+    <button type="button" class="boton boton--primario" data-cola-sincronizar>{{ icono("nube") }} Enviar ahora</button>
+  </div>
+</dialog>
+{% else %}
+<main class="publico" id="contenido">
+  {% include "_avisos.html" %}
+  {% block publico %}{% endblock %}
+</main>
+{% endif %}
+
+<div class="avisos-flotantes" data-toasts aria-live="polite"></div>
+</body>
+</html>

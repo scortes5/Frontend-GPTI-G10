@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, csrf, dato, tabla_ventas %}
+{% block titulo %}Lote {{ lote.codigo }}{% endblock %}
+{% block contenido %}
+<nav class="migas" aria-label="Ruta"><a href="{{ url_for('panel.lotes') }}">Lotes</a> <span aria-hidden="true">/</span> <span>{{ lote.codigo }}</span></nav>
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo"><code class="codigo">{{ lote.codigo }}</code></p>
+    <h1>{{ lote.cultivo }} <span class="sutil">· {{ lote.productor }}</span></h1>
+  </div>
+  <div class="cabecera__acciones">
+    <a class="boton boton--suave" href="{{ url_for('panel.ventas', codigo=lote.codigo) }}">{{ icono("ventas") }} Registrar venta</a>
+    <a class="boton boton--suave" href="{{ url_for('trazabilidad.ficha', codigo=lote.codigo) }}">{{ icono("qr") }} Trazabilidad</a>
+  </div>
+</header>
+
+<div class="rejilla-ficha">
+  <section class="tarjeta tarjeta-qr" data-zona-impresion>
+    <img src="{{ url_for('pwa.qr', codigo=lote.codigo) }}" alt="Código QR del lote {{ lote.codigo }}" width="220" height="220">
+    <div class="tarjeta-qr__texto">
+      <strong>{{ lote.cultivo }}</strong>
+      <span>{{ lote.productor }} · {{ lote.fecha_cosecha|fecha }}</span>
+      <code class="codigo">{{ lote.codigo }}</code>
+    </div>
+    <button type="button" class="boton boton--primario no-imprimir" data-imprimir>{{ icono("imprimir") }} Imprimir etiqueta</button>
+    <a class="boton boton--enlace no-imprimir" href="{{ url_for('pwa.qr', codigo=lote.codigo) }}" download="QR-{{ lote.codigo }}.png">Descargar imagen</a>
+  </section>
+
+  <div class="pila">
+    <section class="datos-lote">
+      {{ dato("Kilos cosechados", lote.kilos|kg) }}
+      {{ dato("Vendidos", traza.kilos_vendidos|kg) }}
+      {{ dato("Disponibles", traza.kilos_disponibles|kg, "dato--destacado") }}
+      {{ dato("Ingresos", traza.ingresos|clp) }}
+    </section>
+
+    <section class="tarjeta">
+      <h2>Editar lote</h2>
+      <form method="post" action="{{ url_for('panel.editar_lote', codigo=lote.codigo) }}" class="formulario"
+            data-cola="{{ url_for('cola.editar_lote', codigo=lote.codigo) }}" data-cola-metodo="PATCH" data-cola-tipo="lote-editar"
+            data-cola-titulo="Cambios al lote {{ lote.codigo }}" data-cola-resumen="{cultivo} · {kilos} kg · cosecha {fecha_cosecha}">
+        {{ csrf() }}
+        {% include "_form_lote.html" %}
+        <button class="boton boton--primario" type="submit">{{ icono("check") }} Guardar cambios</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<section class="tarjeta">
+  <h2>Ventas del lote</h2>
+  {{ tabla_ventas(traza.ventas) }}
+</section>
+
+{% if es_admin %}
+<section class="tarjeta tarjeta--peligro">
+  <h2>{{ icono("basura") }} Eliminar lote</h2>
+  <p>Se borra el lote <strong>{{ lote.codigo }}</strong> y sus {{ traza.ventas|length }} venta(s). No se puede deshacer.</p>
+  <form method="post" action="{{ url_for('panel.eliminar_lote', codigo=lote.codigo) }}" class="formulario-linea" data-confirmar="¿Eliminar definitivamente el lote {{ lote.codigo }} y sus ventas?">
+    {{ csrf() }}
+    <label class="casilla"><input type="checkbox" name="confirmar" value="si" required> Confirmo que quiero eliminar este lote y sus ventas</label>
+    <button class="boton boton--peligro" type="submit">Eliminar lote</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

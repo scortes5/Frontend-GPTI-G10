@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, csrf %}
+{% block titulo %}Lotes{% endblock %}
+{% block contenido %}
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo">Cosechas</p>
+    <h1>Lotes</h1>
+  </div>
+</header>
+
+<div class="rejilla-lotes">
+  <section class="tarjeta" id="registrar">
+    <h2>{{ icono("mas") }} Registrar lote</h2>
+    <form method="post" action="{{ url_for('panel.crear_lote') }}" class="formulario"
+          data-cola="{{ url_for('cola.crear_lote') }}" data-cola-metodo="POST" data-cola-tipo="lote"
+          data-cola-titulo="Nuevo lote" data-cola-resumen="{cultivo} · {kilos} kg · cosecha {fecha_cosecha}">
+      {{ csrf() }}
+      {% include "_form_lote.html" %}
+      <button class="boton boton--primario boton--grande boton--bloque" type="submit">{{ icono("check") }} Guardar lote</button>
+      <p class="campo__ayuda centrado">Sin señal también puedes guardar: se enviará cuando vuelva la conexión.</p>
+    </form>
+  </section>
+
+  <section class="tarjeta tarjeta--tabla">
+    <div class="tarjeta__cabeza">
+      <h2>Historial</h2>
+      {% if lotes %}
+      <label class="buscador">
+        {{ icono("buscar") }}
+        <input type="search" placeholder="Buscar lote, cultivo o productor" data-filtro-tabla="tabla-lotes" aria-label="Buscar en el historial">
+      </label>
+      {% endif %}
+    </div>
+
+    <div class="pendientes" data-cola-lista="lote" hidden>
+      <h3>{{ icono("nube") }} Esperando conexión</h3>
+      <ul></ul>
+    </div>
+
+    {% if lotes %}
+    <div class="tabla-marco">
+      <table class="tabla tabla--enlaces" id="tabla-lotes">
+        <thead><tr><th>Código</th><th>Cultivo</th>{% if es_admin %}<th>Productor</th>{% endif %}<th>Cosecha</th><th class="num">Kilos</th><th aria-label="Acciones"></th></tr></thead>
+        <tbody>
+        {% for l in lotes|sort(attribute="creado", reverse=true) %}
+          <tr>
+            <td data-etiqueta="Código"><code class="codigo">{{ l.codigo }}</code></td>
+            <td data-etiqueta="Cultivo" class="fuerte">{{ l.cultivo }}</td>
+            {% if es_admin %}<td data-etiqueta="Productor">{{ l.productor }}</td>{% endif %}
+            <td data-etiqueta="Cosecha">{{ l.fecha_cosecha|fecha }}</td>
+            <td data-etiqueta="Kilos" class="num">{{ l.kilos|kg }}</td>
+            <td class="tabla__accion"><a class="boton boton--suave boton--chico" href="{{ url_for('panel.lote', codigo=l.codigo) }}">Ver y editar {{ icono("flecha") }}</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="vacio" data-filtro-vacio="tabla-lotes" hidden>Ningún lote coincide con la búsqueda.</p>
+    {% else %}
+    <div class="estado-vacio">
+      {{ icono("lotes") }}
+      <p><strong>Aún no hay lotes registrados.</strong><br>Registra tu primera cosecha con el formulario.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

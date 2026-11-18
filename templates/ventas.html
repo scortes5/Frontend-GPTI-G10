@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, campo, csrf, dato, tabla_ventas %}
+{% block titulo %}Ventas{% endblock %}
+{% block contenido %}
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo">Comercialización</p>
+    <h1>Ventas</h1>
+  </div>
+</header>
+
+{% if not lotes %}
+<div class="tarjeta estado-vacio">
+  {{ icono("ventas") }}
+  <p><strong>Primero registra un lote.</strong><br>Las ventas se anotan sobre los kilos de un lote.</p>
+  <a class="boton boton--primario" href="{{ url_for('panel.lotes') }}#registrar">{{ icono("mas") }} Registrar lote</a>
+</div>
+{% else %}
+<form method="get" action="{{ url_for('panel.ventas') }}" class="selector-lote" data-autoenvio>
+  <label class="campo">
+    <span class="campo__etiqueta">Lote</span>
+    <span class="campo__control">
+      <select name="codigo">
+        {% for l in lotes|sort(attribute="creado", reverse=true) %}
+        <option value="{{ l.codigo }}" {% if l.codigo == lote.codigo %}selected{% endif %}>{{ l.codigo }} · {{ l.cultivo }} · {{ l.productor }}</option>
+        {% endfor %}
+      </select>
+    </span>
+  </label>
+  <noscript><button class="boton boton--suave" type="submit">Ver</button></noscript>
+</form>
+
+<section class="datos-lote">
+  {{ dato("Kilos del lote", lote.kilos|kg) }}
+  {{ dato("Disponibles", traza.kilos_disponibles|kg, "dato--destacado") }}
+  {{ dato("Vendidos", traza.kilos_vendidos|kg) }}
+  {{ dato("Ingresos", traza.ingresos|clp) }}
+</section>
+
+<div class="rejilla-lotes">
+  <section class="tarjeta">
+    <h2>{{ icono("mas") }} Registrar venta</h2>
+    {% if traza.kilos_disponibles > 0 %}
+    <form method="post" action="{{ url_for('panel.registrar_venta', codigo=lote.codigo) }}" class="formulario" data-calculo-total
+          data-cola="{{ url_for('cola.registrar_venta', codigo=lote.codigo) }}" data-cola-metodo="POST" data-cola-tipo="venta"
+          data-cola-filtro="{{ lote.codigo }}" data-cola-titulo="Venta del lote {{ lote.codigo }}"
+          data-cola-resumen="{comprador} · {kilos} kg a ${precio_por_kilo}/kg">
+      {{ csrf() }}
+      {{ campo("comprador", "Comprador", valores.get("comprador", ""), required=true, maxlength="120", autocomplete="off", placeholder="Ej: Feria de Temuco") }}
+      <div class="fila-campos">
+        {{ campo("kilos", "Kilos vendidos", valores.get("kilos", ""), tipo="number", sufijo="kg", required=true, min="0.1", step="any", max=traza.kilos_disponibles, inputmode="decimal", ayuda="Disponibles: " ~ (traza.kilos_disponibles|kg)) }}
+        {{ campo("precio_por_kilo", "Precio por kilo", valores.get("precio_por_kilo", ""), tipo="number", sufijo="$", required=true, min="1", step="1", inputmode="numeric") }}
+      </div>
+      {{ campo("fecha", "Fecha de venta", valores.get("fecha", hoy), tipo="date", required=true, min=lote.fecha_cosecha, max=hoy) }}
+      <p class="total-venta" data-total hidden>Total de la venta: <strong data-total-valor></strong></p>
+      <button class="boton boton--primario boton--grande boton--bloque" type="submit">{{ icono("check") }} Registrar venta</button>
+    </form>
+    {% else %}
+    <div class="aviso aviso--info">{{ icono("check") }}<span>Este lote ya no tiene kilos disponibles.</span></div>
+    {% endif %}
+  </section>
+
+  <section class="tarjeta tarjeta--tabla">
+    <h2>Ventas del lote</h2>
+    <div class="pendientes" data-cola-lista="venta" data-cola-filtro="{{ lote.codigo }}" hidden>
+      <h3>{{ icono("nube") }} Esperando conexión</h3>
+      <ul></ul>
+    </div>
+    {{ tabla_ventas(traza.ventas) }}
+  </section>
+</div>
+{% endif %}
+{% endblock %}
