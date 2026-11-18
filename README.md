@@ -65,7 +65,8 @@ python app.py
 Abre http://localhost:8501 (el mismo puerto que usaba Streamlit, así el `FRONTEND_URL` del backend,
 los QR ya impresos y CORS siguen sirviendo).
 
-En producción: `gunicorn -w 2 -b 0.0.0.0:8501 app:app`, detrás de HTTPS y con `COOKIE_SEGURA=1`.
+En producción se usa el `Dockerfile` (gunicorn) con el `docker-compose` de `despliegue/` en el
+repositorio del backend, que agrega PostgreSQL y HTTPS automático con Caddy.
 El service worker solo funciona en `localhost` o con HTTPS.
 
 ## Tests

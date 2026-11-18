@@ -317,7 +317,9 @@
 
   // ---------- Entrada: mostrar el formulario al elegir "Iniciar sesión" ----------
 
-  $$("[data-oculto-con-js]").forEach((el) => { el.hidden = true; });
+  // Si la persona tocó "Iniciar sesión" antes de que cargara este script, el enlace ya saltó al
+  // formulario (#iniciar-sesion): se deja visible en vez de esconderlo bajo sus dedos.
+  $$("[data-oculto-con-js]").forEach((el) => { if (location.hash !== "#" + el.id) el.hidden = true; });
   $$("[data-mostrar]").forEach((enlace) => {
     enlace.addEventListener("click", (evento) => {
       const destino = document.getElementById(enlace.dataset.mostrar);
