@@ -1,4 +1,4 @@
-{# Campos del lote, compartidos por registrar y editar. Requiere `valores`. #}
+{# Campos del lote. Requiere `valores`. Con `edicion` no se piden kilos (se corrigen con las entregas) y sí un motivo. #}
 {% from "_macros.html" import campo %}
 {% if es_admin %}
 {{ campo("productor", "Productor", valores.get("productor", ""), required=true, maxlength="120", autocomplete="off") }}
@@ -14,6 +14,16 @@
   {% for c in ["Papa nativa", "Ajo", "Arándano", "Frutilla", "Avellana", "Quínoa", "Miel", "Hortalizas"] %}<option value="{{ c }}">{% endfor %}
 </datalist>
 <div class="fila-campos">
+  {{ campo("predio", "Predio", valores.get("predio") or "", maxlength="120", placeholder="Ej: Parcela El Roble", autocomplete="off") }}
+  {{ campo("superficie_ha", "Superficie", valores.get("superficie_ha") or "", tipo="number", sufijo="ha", min="0.01", step="any", inputmode="decimal") }}
+</div>
+{% if edicion %}
+{{ campo("fecha_cosecha", "Fecha de la primera cosecha", valores.get("fecha_cosecha", hoy), tipo="date", required=true, max=hoy) }}
+{{ campo("motivo", "Motivo del cambio", valores.get("motivo", ""), required=true, minlength="3", maxlength="300", placeholder="Ej: el predio estaba mal escrito", autocomplete="off", ayuda="Queda en el historial del lote junto a tu nombre y la fecha.") }}
+{% else %}
+<div class="fila-campos">
   {{ campo("kilos", "Kilos cosechados", valores.get("kilos", ""), tipo="number", sufijo="kg", required=true, min="0.1", step="any", inputmode="decimal") }}
   {{ campo("fecha_cosecha", "Fecha de cosecha", valores.get("fecha_cosecha", hoy), tipo="date", required=true, max=hoy) }}
 </div>
+{% include "_calidad.html" %}
+{% endif %}

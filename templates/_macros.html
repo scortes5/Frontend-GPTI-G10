@@ -24,19 +24,40 @@
 </div>
 {%- endmacro %}
 
-{% macro tabla_ventas(ventas) -%}
+{% macro estado(e) -%}
+{% if e == "anulado" %}<span class="pastilla pastilla--error">Anulado</span>{% else %}<span class="pastilla pastilla--ok">Vigente</span>{% endif %}
+{%- endmacro %}
+
+{% macro anular(accion, texto, etiqueta="Anular", volver=None) -%}
+<details class="anular no-imprimir">
+  <summary class="boton boton--fantasma boton--chico">{{ etiqueta }}</summary>
+  <form method="post" action="{{ accion }}" class="anular__form" data-requiere-red>
+    {{ csrf() }}
+    {% if volver %}<input type="hidden" name="volver" value="{{ volver }}">{% endif %}
+    <label class="campo">
+      <span class="campo__etiqueta">{{ texto }}</span>
+      <span class="campo__control"><input name="motivo" type="text" required minlength="3" maxlength="300" placeholder="Motivo, por ejemplo: kilos mal anotados" autocomplete="off"></span>
+    </label>
+    <button class="boton boton--peligro boton--chico" type="submit">Confirmar anulación</button>
+  </form>
+</details>
+{%- endmacro %}
+
+{% macro tabla_ventas(ventas, codigo=None, volver=None) -%}
 {% if ventas %}
 <div class="tabla-marco">
   <table class="tabla">
-    <thead><tr><th>Fecha</th><th>Comprador</th><th class="num">Kilos</th><th class="num">Precio/kg</th><th class="num">Total</th></tr></thead>
+    <thead><tr><th>Fecha</th><th>Comprador</th><th class="num">Kilos</th><th class="num">Precio/kg</th><th class="num">Total</th><th>Estado</th>{% if codigo %}<th aria-label="Acciones"></th>{% endif %}</tr></thead>
     <tbody>
     {% for v in ventas|sort(attribute="fecha", reverse=true) %}
-      <tr>
+      <tr{% if v.estado == "anulado" %} class="fila-anulada"{% endif %}>
         <td data-etiqueta="Fecha">{{ v.fecha|fecha }}</td>
         <td data-etiqueta="Comprador">{{ v.comprador }}</td>
         <td data-etiqueta="Kilos" class="num">{{ v.kilos|kg }}</td>
         <td data-etiqueta="Precio/kg" class="num">{{ v.precio_por_kilo|clp }}</td>
         <td data-etiqueta="Total" class="num fuerte">{{ (v.kilos * v.precio_por_kilo)|clp }}</td>
+        <td data-etiqueta="Estado">{{ estado(v.estado) }}{% if v.motivo_anulacion %}<small class="motivo">{{ v.motivo_anulacion }}</small>{% endif %}</td>
+        {% if codigo %}<td class="tabla__accion">{% if v.estado != "anulado" %}{{ anular(url_for('panel.anular_venta', codigo=codigo, venta_id=v.id), "¿Por qué anulas esta venta?", volver=volver) }}{% endif %}</td>{% endif %}
       </tr>
     {% endfor %}
     </tbody>
@@ -44,5 +65,49 @@
 </div>
 {% else %}
 <p class="vacio">Este lote aún no tiene ventas.</p>
+{% endif %}
+{%- endmacro %}
+
+{% macro tabla_entregas(entregas, codigo=None) -%}
+<div class="tabla-marco">
+  <table class="tabla">
+    <thead><tr><th>Fecha</th><th class="num">Kilos</th><th>Calidad</th><th>Estado</th>{% if codigo %}<th aria-label="Acciones"></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for e in entregas|sort(attribute="fecha") %}
+      <tr{% if e.estado == "anulado" %} class="fila-anulada"{% endif %}>
+        <td data-etiqueta="Fecha">{{ e.fecha|fecha }}</td>
+        <td data-etiqueta="Kilos" class="num fuerte">{{ e.kilos|kg }}</td>
+        <td data-etiqueta="Calidad">{{ CALIDADES.get(e.calidad, e.calidad) }}</td>
+        <td data-etiqueta="Estado">{{ estado(e.estado) }}{% if e.motivo_anulacion %}<small class="motivo">{{ e.motivo_anulacion }}</small>{% endif %}</td>
+        {% if codigo %}<td class="tabla__accion">{% if e.estado != "anulado" %}{{ anular(url_for('panel.anular_entrega', codigo=codigo, entrega_id=e.id), "¿Por qué anulas esta entrega?") }}{% endif %}</td>{% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endmacro %}
+
+{% macro datos_ia(r) -%}
+<div class="texto-ia">{{ r.texto|texto_ia }}</div>
+{% if r.datos_usados %}
+<details class="datos-usados">
+  <summary>Datos que se usaron para esta sugerencia</summary>
+  <dl>{% for d in r.datos_usados %}<div><dt>{{ d.dato }}</dt><dd>{{ d.valor }}</dd></div>{% endfor %}</dl>
+</details>
+{% endif %}
+<p class="campo__ayuda">Sugerencia generada con IA ({{ r.proveedor }}) el {{ r.creado|hora }}. Úsala como apoyo y valídala antes de actuar.
+{% if r.consultas_restantes is not none %} Te quedan {{ r.consultas_restantes }} consultas hoy.{% endif %}</p>
+{%- endmacro %}
+
+{% macro historial_ia(recomendaciones) -%}
+{% if recomendaciones %}
+<details class="historial-ia">
+  <summary>Recomendaciones anteriores ({{ recomendaciones|length }})</summary>
+  <ol>
+  {% for r in recomendaciones %}
+    <li><strong>{{ r.creado|hora }}</strong> · {{ r.proveedor }}<div class="texto-ia">{{ r.texto|texto_ia }}</div></li>
+  {% endfor %}
+  </ol>
+</details>
 {% endif %}
 {%- endmacro %}

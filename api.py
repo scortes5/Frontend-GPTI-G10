@@ -43,8 +43,9 @@ class ErrorDeDatos(BackendError):
         self.status = status
 
 
-def _respuesta(method: str, path: str, **kwargs) -> requests.Response:
+def _respuesta(method: str, path: str, evento: dict | None = None, **kwargs) -> requests.Response:
     headers = {"Authorization": f"Bearer {sesion.token()}"} if sesion.activa() else {}
+    headers.update(evento or {})  # X-Evento-*: identifican un registro de la cola sin conexión
     try:
         response = requests.request(method, f"{BACKEND_URL}{path}", headers=headers, timeout=30, **kwargs)
     except requests.RequestException as e:
@@ -104,32 +105,54 @@ def restablecer_clave(email: str, codigo: str, clave_nueva: str) -> None:
     _request("POST", "/auth/restablecer", json={"email": email, "codigo": codigo, "clave_nueva": clave_nueva})
 
 
-def listar_lotes() -> list[dict]:
-    return _request("GET", "/lotes")
+def _sin_vacios(filtros: dict | None) -> dict:
+    return {k: v for k, v in (filtros or {}).items() if v not in (None, "")}
+
+
+def listar_lotes(filtros: dict | None = None) -> list[dict]:
+    """Filtros: desde, hasta (fecha de cosecha), estado, cultivo y usuario_id (solo administrador)."""
+    return _request("GET", "/lotes", params=_sin_vacios(filtros))
 
 
 def obtener_lote(codigo: str) -> dict:
     return _request("GET", f"/lotes/{_segmento(codigo)}")
 
 
-def crear_lote(data: dict) -> dict:
-    return _request("POST", "/lotes", json=data)
+def crear_lote(data: dict, evento: dict | None = None) -> dict:
+    return _request("POST", "/lotes", json=data, evento=evento)
 
 
-def actualizar_lote(codigo: str, cambios: dict) -> dict:
-    return _request("PATCH", f"/lotes/{_segmento(codigo)}", json=cambios)
+def actualizar_lote(codigo: str, cambios: dict, evento: dict | None = None) -> dict:
+    return _request("PATCH", f"/lotes/{_segmento(codigo)}", json=cambios, evento=evento)
 
 
-def eliminar_lote(codigo: str) -> None:
-    _request("DELETE", f"/lotes/{_segmento(codigo)}")
+def anular_lote(codigo: str, motivo: str) -> dict:
+    return _request("POST", f"/lotes/{_segmento(codigo)}/anular", json={"motivo": motivo})
+
+
+def agregar_entrega(codigo: str, data: dict, evento: dict | None = None) -> dict:
+    return _request("POST", f"/lotes/{_segmento(codigo)}/entregas", json=data, evento=evento)
+
+
+def anular_entrega(codigo: str, entrega_id: int, motivo: str) -> dict:
+    return _request("POST", f"/lotes/{_segmento(codigo)}/entregas/{_segmento(entrega_id)}/anular", json={"motivo": motivo})
+
+
+def anular_venta(codigo: str, venta_id: int, motivo: str) -> dict:
+    return _request("POST", f"/lotes/{_segmento(codigo)}/ventas/{_segmento(venta_id)}/anular", json={"motivo": motivo})
+
+
+def reporte(codigo: str, formato: str) -> bytes:
+    """PDF o CSV del lote. Pasa por Flask: el token del backend no llega al navegador."""
+    return _respuesta("GET", f"/lotes/{_segmento(codigo)}/reporte.{'pdf' if formato == 'pdf' else 'csv'}").content
 
 
 def listar_ventas(codigo: str) -> list[dict]:
     return _request("GET", f"/lotes/{_segmento(codigo)}/ventas")
 
 
-def registrar_venta(codigo: str, data: dict) -> dict:
-    return _request("POST", f"/lotes/{_segmento(codigo)}/ventas", json=data)
+def registrar_venta(codigo: str, data: dict, evento: dict | None = None) -> dict:
+    return _request("POST", f"/lotes/{_segmento(codigo)}/ventas", json=data, evento=evento)
 
 
 def lote_publico(codigo: str) -> dict:
@@ -140,16 +163,26 @@ def trazabilidad(codigo: str) -> dict:
     return _request("GET", f"/lotes/{_segmento(codigo)}/trazabilidad")
 
 
-def recomendacion(codigo: str) -> str:
-    return _request("GET", f"/lotes/{_segmento(codigo)}/recomendacion")["texto"]
+def recomendacion(codigo: str) -> dict:
+    """Texto, datos usados, proveedor y consultas que quedan hoy."""
+    return _request("GET", f"/lotes/{_segmento(codigo)}/recomendacion")
+
+
+def recomendaciones_lote(codigo: str) -> list[dict]:
+    return _request("GET", f"/lotes/{_segmento(codigo)}/recomendaciones")
+
+
+def recomendaciones(limite: int = 20) -> list[dict]:
+    return _request("GET", "/recomendaciones", params={"limite": limite})
 
 
 def enviar_reporte(codigo: str, destinatario: str) -> None:
     _request("POST", f"/lotes/{_segmento(codigo)}/reporte", json={"destinatario": destinatario})
 
 
-def resumen() -> dict:
-    return _request("GET", "/dashboard/resumen")
+def resumen(filtros: dict | None = None) -> dict:
+    """Filtros: desde, hasta, cultivo y usuario_id (socio, solo administrador)."""
+    return _request("GET", "/dashboard/resumen", params=_sin_vacios(filtros))
 
 
 def listar_usuarios() -> list[dict]:
@@ -189,5 +222,5 @@ def clima(usuario_id: int | None = None) -> dict:
     return _request("GET", "/clima", params=_consulta_usuario(usuario_id))
 
 
-def recomendacion_clima(usuario_id: int | None = None) -> str:
-    return _request("GET", "/clima/recomendacion", params=_consulta_usuario(usuario_id))["texto"]
+def recomendacion_clima(usuario_id: int | None = None) -> dict:
+    return _request("GET", "/clima/recomendacion", params=_consulta_usuario(usuario_id))
