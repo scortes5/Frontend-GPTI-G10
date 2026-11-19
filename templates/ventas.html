@@ -66,7 +66,7 @@
       <h3>{{ icono("nube") }} Esperando conexión</h3>
       <ul></ul>
     </div>
-    {{ tabla_ventas(traza.ventas) }}
+    {{ tabla_ventas(traza.ventas, lote.codigo, "ventas") }}
   </section>
 </div>
 {% endif %}

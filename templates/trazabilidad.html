@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icono, campo, csrf, dato, tabla_ventas %}
+{% from "_macros.html" import icono, campo, csrf, dato, tabla_ventas, tabla_entregas, estado, datos_ia, historial_ia %}
 {% block titulo %}Trazabilidad{% endblock %}
 
 {% macro buscador() %}
@@ -14,14 +14,26 @@
 
 {% macro ficha_publica(lote) %}
 <article class="ficha-publica tarjeta">
+  {% if lote.estado == "anulado" %}
+  <div class="ficha-publica__sello ficha-publica__sello--anulado">{{ icono("alerta") }} Este lote fue anulado por la cooperativa</div>
+  {% else %}
   <div class="ficha-publica__sello">{{ icono("check") }} Origen registrado en AgroTracker</div>
+  {% endif %}
   <h1>{{ lote.cultivo }}</h1>
-  <p class="ficha-publica__productor">Cosechado por <strong>{{ lote.productor }}</strong><br>Cooperativa Newen al Sur</p>
+  <p class="ficha-publica__productor">Cosechado por <strong>{{ lote.productor }}</strong>{% if lote.predio %} en el predio {{ lote.predio }}{% endif %}<br>Cooperativa Newen al Sur</p>
   <div class="datos-lote datos-lote--3">
-    {{ dato("Fecha de cosecha", lote.fecha_cosecha|fecha) }}
+    {{ dato("Primera cosecha", lote.fecha_cosecha|fecha) }}
     {{ dato("Kilos cosechados", lote.kilos|kg) }}
     {{ dato("Código", lote.codigo) }}
   </div>
+  {% if lote.entregas %}
+  <h2 class="ficha-publica__subtitulo">Entregas de cosecha</h2>
+  <ul class="ficha-publica__entregas">
+    {% for e in lote.entregas|sort(attribute="fecha") %}
+    <li><span>{{ e.fecha|fecha }}</span><strong>{{ e.kilos|kg }}</strong><span class="pastilla">{{ CALIDADES.get(e.calidad, e.calidad) }}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
   <img class="ficha-publica__qr" src="{{ url_for('pwa.qr', codigo=lote.codigo) }}" alt="Código QR del lote {{ lote.codigo }}" width="160" height="160">
 </article>
 {% endmacro %}
@@ -64,14 +76,27 @@
         <span>{{ lote.productor }}</span>
         <code class="codigo">{{ lote.codigo }}</code>
       </div>
-      <a class="boton boton--suave" href="{{ url_for('panel.lote', codigo=lote.codigo) }}">Editar lote</a>
+      <span>{{ estado(lote.estado) }}</span>
+      <a class="boton boton--suave" href="{{ url_for('panel.lote', codigo=lote.codigo) }}">Ver y editar lote</a>
+      <a class="boton boton--enlace" href="{{ url_for('panel.reporte', codigo=lote.codigo, formato='pdf') }}" download>Descargar PDF</a>
+      <a class="boton boton--enlace" href="{{ url_for('panel.reporte', codigo=lote.codigo, formato='csv') }}" download>Descargar CSV</a>
     </section>
 
     <div class="pila">
+      {# Eventos en orden: entregas y ventas por su fecha; las anulaciones se muestran tachadas. #}
+      {% set eventos = [] %}
+      {% for e in traza.entregas %}{% set _ = eventos.append({"fecha": e.fecha, "tipo": "entrega", "dato": e}) %}{% endfor %}
+      {% for v in traza.ventas %}{% set _ = eventos.append({"fecha": v.fecha, "tipo": "venta", "dato": v}) %}{% endfor %}
       <ol class="linea-tiempo" aria-label="Historial">
-        <li><span class="linea-tiempo__punto"></span><div><strong>Cosecha · {{ lote.fecha_cosecha|fecha }}</strong><span>{{ lote.kilos|kg }} de {{ lote.cultivo|lower }}</span></div></li>
-        {% for v in traza.ventas|sort(attribute="fecha") %}
-        <li><span class="linea-tiempo__punto linea-tiempo__punto--venta"></span><div><strong>Venta · {{ v.fecha|fecha }}</strong><span>{{ v.kilos|kg }} a {{ v.comprador }} · {{ (v.kilos * v.precio_por_kilo)|clp }}</span></div></li>
+        {% for ev in eventos|sort(attribute="fecha") %}
+        {% set d = ev.dato %}
+        <li{% if d.estado == "anulado" %} class="linea-tiempo__anulado"{% endif %}>
+          {% if ev.tipo == "entrega" %}
+          <span class="linea-tiempo__punto"></span><div><strong>Entrega · {{ d.fecha|fecha }}</strong><span>{{ d.kilos|kg }} de {{ lote.cultivo|lower }}, calidad {{ CALIDADES.get(d.calidad, d.calidad)|lower }}{% if d.estado == "anulado" %} · anulada: {{ d.motivo_anulacion }}{% endif %}</span></div>
+          {% else %}
+          <span class="linea-tiempo__punto linea-tiempo__punto--venta"></span><div><strong>Venta · {{ d.fecha|fecha }}</strong><span>{{ d.kilos|kg }} a {{ d.comprador }} · {{ (d.kilos * d.precio_por_kilo)|clp }}{% if d.estado == "anulado" %} · anulada: {{ d.motivo_anulacion }}{% endif %}</span></div>
+          {% endif %}
+        </li>
         {% endfor %}
         <li class="linea-tiempo__actual"><span class="linea-tiempo__punto linea-tiempo__punto--hoy"></span><div><strong>Hoy</strong><span>{{ traza.kilos_disponibles|kg }} disponibles · {{ traza.ingresos|clp }} en ventas</span></div></li>
       </ol>
@@ -79,14 +104,37 @@
   </div>
 
   <section class="tarjeta">
+    <h2>Entregas</h2>
+    {{ tabla_entregas(traza.entregas) }}
+  </section>
+
+  <section class="tarjeta">
     <h2>Ventas</h2>
     {{ tabla_ventas(traza.ventas) }}
+  </section>
+
+  {% set modificaciones = traza.historial|selectattr("accion", "ne", "creado")|list %}
+  <section class="tarjeta">
+    <h2>Modificaciones</h2>
+    {% if modificaciones %}
+    <ol class="historial">
+      {% for c in modificaciones|reverse %}
+      <li class="historial__item historial__item--{{ c.accion }}">
+        <div class="historial__cabeza"><strong>{{ c|accion }}</strong><span>{{ c.fecha|hora }} · {{ c.usuario_nombre }}</span></div>
+        {% if c.detalle %}<p>{{ c.detalle }}</p>{% endif %}
+        {% if c.motivo %}<p class="historial__motivo">Motivo: {{ c.motivo }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="vacio">El lote no ha tenido correcciones ni anulaciones.</p>
+    {% endif %}
   </section>
 
   <div class="rejilla-2">
     <section class="tarjeta">
       <h2>{{ icono("correo") }} Enviar reporte por correo</h2>
-      <p class="sutil">Para auditorías: envía la ficha y el detalle de ventas (CSV adjunto).</p>
+      <p class="sutil">Para auditorías: envía la ficha con el reporte en PDF y el detalle de ventas en CSV.</p>
       <form method="post" action="{{ url_for('trazabilidad.enviar_reporte', codigo=lote.codigo) }}" class="formulario" data-requiere-red>
         {{ csrf() }}
         {{ campo("destinatario", "Correo del destinatario", tipo="email", required=true, placeholder="auditor@cooperativa.cl", inputmode="email") }}
@@ -97,8 +145,7 @@
     <section class="tarjeta tarjeta--ia">
       <h2>{{ icono("chispa") }} Recomendación agronómica</h2>
       {% if recomendacion %}
-        <div class="texto-ia">{{ recomendacion|texto_ia }}</div>
-        <p class="campo__ayuda">Generada con IA a partir de los datos del lote. Úsala como apoyo, no como indicación definitiva.</p>
+        {{ datos_ia(recomendacion) }}
       {% else %}
         <p class="sutil">Sugerencias para conservar y vender lo que queda del lote.</p>
       {% endif %}
@@ -106,6 +153,7 @@
         {{ csrf() }}
         <button class="boton boton--suave" type="submit">{{ icono("chispa") }} {{ "Generar otra" if recomendacion else "Generar recomendación" }}</button>
       </form>
+      {{ historial_ia(previas if not recomendacion else previas[1:]) }}
     </section>
   </div>
 {% endif %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icono, csrf %}
+{% from "_macros.html" import icono, csrf, estado %}
 {% block titulo %}Lotes{% endblock %}
 {% block contenido %}
 <header class="cabecera">
@@ -14,7 +14,7 @@
     <h2>{{ icono("mas") }} Registrar lote</h2>
     <form method="post" action="{{ url_for('panel.crear_lote') }}" class="formulario"
           data-cola="{{ url_for('cola.crear_lote') }}" data-cola-metodo="POST" data-cola-tipo="lote"
-          data-cola-titulo="Nuevo lote" data-cola-resumen="{cultivo} · {kilos} kg · cosecha {fecha_cosecha}">
+          data-cola-titulo="Nuevo lote" data-cola-resumen="{cultivo} · {kilos} kg · {calidad} · cosecha {fecha_cosecha}">
       {{ csrf() }}
       {% include "_form_lote.html" %}
       <button class="boton boton--primario boton--grande boton--bloque" type="submit">{{ icono("check") }} Guardar lote</button>
@@ -33,6 +33,8 @@
       {% endif %}
     </div>
 
+    {% include "_filtros.html" %}
+
     <div class="pendientes" data-cola-lista="lote" hidden>
       <h3>{{ icono("nube") }} Esperando conexión</h3>
       <ul></ul>
@@ -41,15 +43,17 @@
     {% if lotes %}
     <div class="tabla-marco">
       <table class="tabla tabla--enlaces" id="tabla-lotes">
-        <thead><tr><th>Código</th><th>Cultivo</th>{% if es_admin %}<th>Productor</th>{% endif %}<th>Cosecha</th><th class="num">Kilos</th><th aria-label="Acciones"></th></tr></thead>
+        <thead><tr><th>Código</th><th>Cultivo</th>{% if es_admin %}<th>Productor</th>{% endif %}<th>Predio</th><th>Cosecha</th><th class="num">Kilos</th><th>Estado</th><th aria-label="Acciones"></th></tr></thead>
         <tbody>
         {% for l in lotes|sort(attribute="creado", reverse=true) %}
-          <tr>
+          <tr{% if l.estado == "anulado" %} class="fila-anulada"{% endif %}>
             <td data-etiqueta="Código"><code class="codigo">{{ l.codigo }}</code></td>
             <td data-etiqueta="Cultivo" class="fuerte">{{ l.cultivo }}</td>
             {% if es_admin %}<td data-etiqueta="Productor">{{ l.productor }}</td>{% endif %}
+            <td data-etiqueta="Predio">{{ l.predio or "—" }}</td>
             <td data-etiqueta="Cosecha">{{ l.fecha_cosecha|fecha }}</td>
             <td data-etiqueta="Kilos" class="num">{{ l.kilos|kg }}</td>
+            <td data-etiqueta="Estado">{{ estado(l.estado) }}</td>
             <td class="tabla__accion"><a class="boton boton--suave boton--chico" href="{{ url_for('panel.lote', codigo=l.codigo) }}">Ver y editar {{ icono("flecha") }}</a></td>
           </tr>
         {% endfor %}
@@ -57,6 +61,8 @@
       </table>
     </div>
     <p class="vacio" data-filtro-vacio="tabla-lotes" hidden>Ningún lote coincide con la búsqueda.</p>
+    {% elif filtros %}
+    <p class="vacio">Ningún lote cumple los filtros. <a href="{{ url_for('panel.lotes') }}">Ver todos</a></p>
     {% else %}
     <div class="estado-vacio">
       {{ icono("lotes") }}
