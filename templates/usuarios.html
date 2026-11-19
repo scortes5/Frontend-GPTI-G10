@@ -15,8 +15,9 @@
     <form method="post" action="{{ url_for('panel.crear_usuario') }}" class="formulario" data-requiere-red>
       {{ csrf() }}
       {{ campo("nombre", "Nombre completo", valores.get("nombre", ""), required=true, maxlength="120", autocomplete="off") }}
-      {{ campo("email", "Correo", valores.get("email", ""), tipo="email", required=true, autocomplete="off", inputmode="email") }}
-      {{ campo("clave", "Contraseña inicial", tipo="password", required=true, minlength="8", autocomplete="new-password", ayuda="Mínimo 8 caracteres. Entrégala al socio en persona.") }}
+      {{ campo("rut", "RUT", valores.get("rut", ""), required=true, maxlength="14", placeholder="12.345.678-5", autocomplete="off", ayuda="Se revisa el dígito verificador.") }}
+      {{ campo("email", "Correo", valores.get("email", ""), tipo="email", required=true, autocomplete="off", inputmode="email", ayuda="Le enviaremos aquí su contraseña inicial.") }}
+      {{ campo("clave", "Contraseña inicial (opcional)", tipo="password", minlength="8", autocomplete="new-password", ayuda="Si la dejas en blanco, el sistema crea una segura. Se envía por correo al socio.") }}
       <fieldset class="opciones">
         <legend class="campo__etiqueta">Rol</legend>
         {% set rol_actual = valores.get("rol", "productor") %}
@@ -34,20 +35,30 @@
       <li class="usuario-fila{% if not u.activo %} usuario-fila--inactivo{% endif %}">
         <span class="perfil__avatar" aria-hidden="true">{{ u.nombre[:1]|upper }}</span>
         <div class="usuario-fila__datos">
-          <strong>{{ u.nombre }}{% if u.id == usuario.id %} <span class="pastilla">Tú</span>{% endif %}</strong>
-          <small>{{ u.email }}</small>
+          <strong>{{ u.nombre }}{% if u.id == usuario.id %} <span class="pastilla">Tú</span>{% endif %}{% if not u.activo %} <span class="pastilla pastilla--error">Sin acceso</span>{% endif %}</strong>
+          <small>{{ u.email }}{% if u.rut %} · RUT {{ u.rut|rut }}{% endif %} · {{ ROLES[u.rol] }}</small>
         </div>
-        <form method="post" action="{{ url_for('panel.actualizar_usuario', usuario_id=u.id) }}" class="usuario-fila__form" data-requiere-red>
-          {{ csrf() }}
-          <select name="rol" aria-label="Rol de {{ u.nombre }}" {% if u.id == usuario.id %}disabled{% endif %}>
-            {% for clave, nombre in ROLES.items() %}<option value="{{ clave }}" {% if u.rol == clave %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
-          </select>
-          <label class="interruptor">
-            <input type="checkbox" name="activo" value="si" {% if u.activo %}checked{% endif %} {% if u.id == usuario.id %}disabled{% endif %}>
-            <span>Puede entrar</span>
-          </label>
-          {% if u.id != usuario.id %}<button class="boton boton--suave boton--chico" type="submit">Guardar</button>{% endif %}
-        </form>
+        <details class="usuario-fila__editar">
+          <summary class="boton boton--suave boton--chico">Editar</summary>
+          <form method="post" action="{{ url_for('panel.actualizar_usuario', usuario_id=u.id) }}" class="formulario" data-requiere-red>
+            {{ csrf() }}
+            {{ campo("nombre", "Nombre completo", u.nombre, required=true, maxlength="120", autocomplete="off") }}
+            {{ campo("email", "Correo", u.email, tipo="email", required=true, autocomplete="off", inputmode="email") }}
+            {{ campo("rut", "RUT", u.rut|rut, maxlength="14", placeholder="12.345.678-5", autocomplete="off") }}
+            {% if u.id != usuario.id %}
+            <div class="formulario-linea">
+              <select name="rol" aria-label="Rol de {{ u.nombre }}">
+                {% for clave, nombre in ROLES.items() %}<option value="{{ clave }}" {% if u.rol == clave %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+              </select>
+              <label class="interruptor">
+                <input type="checkbox" name="activo" value="si" {% if u.activo %}checked{% endif %}>
+                <span>Puede entrar</span>
+              </label>
+            </div>
+            {% endif %}
+            <button class="boton boton--primario boton--chico" type="submit">Guardar</button>
+          </form>
+        </details>
       </li>
       {% endfor %}
     </ul>

@@ -10,11 +10,24 @@ from app import create_app, numero
 PRODUCTORA = {"id": 2, "nombre": "María Antilef", "email": "maria@newen.cl", "rol": "productor", "activo": True}
 ADMIN = {"id": 1, "nombre": "Directiva", "email": "admin@newen.cl", "rol": "admin", "activo": True}
 LOTE = {
-    "id": 1, "codigo": "L-ABC123", "productor": "María Antilef", "cultivo": "Papa nativa",
-    "kilos": 500.0, "fecha_cosecha": "2026-11-01", "creado": "2026-11-01T10:00:00",
+    "id": 1, "codigo": "L-ABC123", "productor": "María Antilef", "cultivo": "Papa nativa", "predio": "El Roble",
+    "superficie_ha": 1.5, "kilos": 500.0, "fecha_cosecha": "2026-11-01", "estado": "vigente",
+    "motivo_anulacion": None, "creado": "2026-11-01T10:00:00",
 }
+ENTREGA = {"id": 1, "fecha": "2026-11-01", "kilos": 500.0, "calidad": "primera", "estado": "vigente",
+           "motivo_anulacion": None, "creado": "2026-11-01T10:00:00"}
 TRAZA = {"lote": LOTE, "kilos_vendidos": 120.0, "kilos_disponibles": 380.0, "ingresos": 180000.0,
-         "ventas": [{"id": 1, "comprador": "Feria", "kilos": 120.0, "precio_por_kilo": 1500.0, "fecha": "2026-11-02", "creado": "x"}]}
+         "entregas": [ENTREGA],
+         "ventas": [{"id": 1, "comprador": "Feria", "kilos": 120.0, "precio_por_kilo": 1500.0, "fecha": "2026-11-02",
+                     "estado": "vigente", "motivo_anulacion": None, "creado": "x"}],
+         "historial": [{"entidad": "lote", "entidad_id": 1, "accion": "editado", "detalle": "predio: — → El Roble",
+                        "motivo": "Faltaba el predio", "usuario_nombre": "María Antilef", "fecha": "2026-11-02T09:00:00"}]}
+RESUMEN = {
+    "filtros": {}, "total_lotes": 1, "total_entregas": 1, "total_ventas": 1, "kilos_cosechados": 500.0,
+    "kilos_vendidos": 120.0, "kilos_disponibles": 380.0, "ingresos": 180000.0, "kilos_por_cultivo": {"Papa nativa": 500.0},
+    "recomendaciones": {"total": 0, "ultima": None},
+    "cola": {"eventos": 4, "en_cola": 2, "promedio_segundos": 330.0, "promedio_cola_segundos": 660.0, "maximo_segundos": 900.0},
+}
 
 
 @pytest.fixture
@@ -27,19 +40,21 @@ def backend(monkeypatch):
             llamadas.append((nombre, args))
             if isinstance(resultado, Exception):
                 raise resultado
-            return resultado(*args) if callable(resultado) else resultado
+            return resultado(*args, **kwargs) if callable(resultado) else resultado
         monkeypatch.setattr(api, nombre, funcion)
 
     falso("login", {"access_token": "tok", "usuario": PRODUCTORA})
     falso("logout", None)
-    falso("resumen", {"total_lotes": 1, "kilos_cosechados": 500.0, "kilos_vendidos": 120.0,
-                      "kilos_disponibles": 380.0, "ingresos": 180000.0, "kilos_por_cultivo": {"Papa nativa": 500.0}})
+    falso("resumen", RESUMEN)
     falso("listar_lotes", [LOTE])
     falso("trazabilidad", TRAZA)
-    falso("crear_lote", lambda datos: {**LOTE, **datos})
-    falso("actualizar_lote", lambda codigo, datos: {**LOTE, **datos})
-    falso("registrar_venta", lambda codigo, datos: {"id": 2, **datos})
-    falso("lote_publico", {k: LOTE[k] for k in ("codigo", "productor", "cultivo", "kilos", "fecha_cosecha")})
+    falso("crear_lote", lambda datos, evento=None: {**LOTE, **datos})
+    falso("actualizar_lote", lambda codigo, datos, evento=None: {**LOTE, **datos})
+    falso("registrar_venta", lambda codigo, datos, evento=None: {"id": 2, **datos})
+    falso("agregar_entrega", lambda codigo, datos, evento=None: {**ENTREGA, "id": 2, **datos})
+    falso("recomendaciones_lote", [])
+    falso("lote_publico", {**{k: LOTE[k] for k in ("codigo", "productor", "cultivo", "predio", "kilos", "fecha_cosecha", "estado")},
+                           "entregas": [{"fecha": "2026-11-01", "kilos": 500.0, "calidad": "primera"}]})
     falso("listar_usuarios", [ADMIN, PRODUCTORA])
     falso("clima", api.ErrorDeDatos("Aún no hay un campo registrado", 404))
     backend = type("Backend", (), {"llamadas": llamadas, "falso": staticmethod(falso)})
@@ -86,11 +101,13 @@ def test_login_no_redirige_fuera_del_sitio(cliente):
 def test_registrar_lote_productor_usa_su_nombre(cliente, backend):
     entrar(cliente)
     hoy = date.today().isoformat()
-    respuesta = cliente.post("/lotes", data={"productor": "Otro", "cultivo": "Ajo", "kilos": "12,5", "fecha_cosecha": hoy})
+    respuesta = cliente.post("/lotes", data={"productor": "Otro", "cultivo": "Ajo", "kilos": "12,5", "fecha_cosecha": hoy,
+                                             "predio": "El Roble", "superficie_ha": "0,8", "calidad": "extra"})
     assert respuesta.status_code == 302
     nombre, args = backend.llamadas[-1]
     assert nombre == "crear_lote"
-    assert args[0] == {"productor": "María Antilef", "cultivo": "Ajo", "kilos": 12.5, "fecha_cosecha": hoy}
+    assert args[0] == {"productor": "María Antilef", "cultivo": "Ajo", "predio": "El Roble", "superficie_ha": 0.8,
+                       "kilos": 12.5, "fecha_cosecha": hoy, "calidad": "extra"}
 
 
 def test_lote_con_fecha_futura_se_rechaza(cliente):
