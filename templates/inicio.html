@@ -10,11 +10,21 @@
   <a class="boton boton--primario" href="{{ url_for('panel.lotes') }}#registrar">{{ icono("mas") }} Registrar cosecha</a>
 </header>
 
+{% include "_filtros.html" %}
+{% if filtros %}
+<p class="sutil periodo">Mostrando
+  {%- if filtros.desde or filtros.hasta %} el período {{ filtros.desde|fecha if filtros.desde else "inicio" }} a {{ filtros.hasta|fecha if filtros.hasta else "hoy" }}{% endif %}
+  {%- if filtros.cultivo %} · cultivo {{ filtros.cultivo }}{% endif %}
+  {%- for s in socios if filtros.usuario_id == s.id|string %} · socio {{ s.nombre }}{% endfor %}.
+</p>
+{% endif %}
+
 <section class="indicadores" aria-label="Indicadores">
   <article class="indicador">
     <span class="indicador__icono">{{ icono("lotes") }}</span>
     <span class="indicador__etiqueta">Lotes registrados</span>
     <strong class="indicador__valor">{{ resumen.total_lotes|num(0) }}</strong>
+    <span class="indicador__nota">{{ resumen.total_entregas|num(0) }} entrega{{ "s" if resumen.total_entregas != 1 }}</span>
   </article>
   <article class="indicador">
     <span class="indicador__icono">{{ icono("hoja") }}</span>
@@ -33,6 +43,7 @@
     <span class="indicador__icono">{{ icono("ventas") }}</span>
     <span class="indicador__etiqueta">Ingresos por ventas</span>
     <strong class="indicador__valor">{{ resumen.ingresos|clp }}</strong>
+    <span class="indicador__nota">{{ resumen.total_ventas|num(0) }} venta{{ "s" if resumen.total_ventas != 1 }}</span>
   </article>
 </section>
 
@@ -74,6 +85,33 @@
     </ul>
     {% else %}
     <p class="vacio">Aún no hay cosechas registradas.</p>
+    {% endif %}
+  </section>
+
+  <section class="tarjeta">
+    <h2>{{ icono("nube") }} Registros sin conexión</h2>
+    {% set cola = resumen.cola %}
+    {% if cola.eventos %}
+    <div class="datos-lote datos-lote--3">
+      <div class="dato"><span class="dato__etiqueta">Tiempo promedio de llegada</span><span class="dato__valor">{{ cola.promedio_segundos|duracion }}</span></div>
+      <div class="dato"><span class="dato__etiqueta">Esperaron señal</span><span class="dato__valor">{{ cola.en_cola }} de {{ cola.eventos }}</span></div>
+      <div class="dato"><span class="dato__etiqueta">Demora máxima</span><span class="dato__valor">{{ cola.maximo_segundos|duracion }}</span></div>
+    </div>
+    <p class="campo__ayuda">Tiempo entre que se guarda un registro en el celular y que llega al servidor.
+      {% if cola.en_cola %}Los que esperaron señal tardaron en promedio {{ cola.promedio_cola_segundos|duracion }}.{% endif %}</p>
+    {% else %}
+    <p class="vacio">Aún no hay registros enviados desde la aplicación en este período.</p>
+    {% endif %}
+  </section>
+
+  <section class="tarjeta tarjeta--ia">
+    <h2>{{ icono("chispa") }} Recomendaciones</h2>
+    {% set ia = resumen.recomendaciones %}
+    {% if ia.ultima %}
+    <p class="sutil">{{ ia.total }} recomendación{{ "es" if ia.total != 1 }} generada{{ "s" if ia.total != 1 }}. La última, del {{ ia.ultima.creado|hora }}{% if ia.ultima.lote_codigo %} para el lote <a href="{{ url_for('trazabilidad.ficha', codigo=ia.ultima.lote_codigo) }}">{{ ia.ultima.lote_codigo }}</a>{% else %} sobre el clima del campo{% endif %}:</p>
+    <div class="texto-ia texto-ia--resumen">{{ ia.ultima.texto|texto_ia }}</div>
+    {% else %}
+    <p class="vacio">Aún no se han pedido recomendaciones. Puedes pedirlas desde la trazabilidad de un lote o en Clima.</p>
     {% endif %}
   </section>
 

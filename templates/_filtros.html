@@ -1,0 +1,29 @@
+{% from "_macros.html" import icono %}
+{# Filtros por período, cultivo, socio (administrador) y, en lotes, estado. Requiere `filtros` y `socios`. #}
+{% set con_estado = request.endpoint == "panel.lotes" %}
+<details class="filtros" {% if filtros %}open{% endif %}>
+  <summary>{{ icono("buscar") }} Filtrar{% if filtros %} <span class="contador">{{ filtros|length }}</span>{% endif %}</summary>
+  <form method="get" action="{{ url_for(request.endpoint) }}" class="filtros__form">
+    <label class="campo"><span class="campo__etiqueta">Desde</span><span class="campo__control"><input type="date" name="desde" value="{{ filtros.get('desde', '') }}" max="{{ hoy }}"></span></label>
+    <label class="campo"><span class="campo__etiqueta">Hasta</span><span class="campo__control"><input type="date" name="hasta" value="{{ filtros.get('hasta', '') }}" max="{{ hoy }}"></span></label>
+    <label class="campo"><span class="campo__etiqueta">Cultivo</span><span class="campo__control"><input type="text" name="cultivo" value="{{ filtros.get('cultivo', '') }}" list="cultivos-filtro" maxlength="80" autocomplete="off"></span></label>
+    <datalist id="cultivos-filtro">{% for c in ["Papa nativa", "Ajo", "Arándano", "Frutilla", "Avellana", "Quínoa", "Miel", "Hortalizas"] %}<option value="{{ c }}">{% endfor %}</datalist>
+    {% if con_estado %}
+    <label class="campo"><span class="campo__etiqueta">Estado</span><span class="campo__control"><select name="estado">
+      <option value="">Todos</option>
+      <option value="vigente" {% if filtros.get('estado') == 'vigente' %}selected{% endif %}>Vigentes</option>
+      <option value="anulado" {% if filtros.get('estado') == 'anulado' %}selected{% endif %}>Anulados</option>
+    </select></span></label>
+    {% endif %}
+    {% if socios %}
+    <label class="campo"><span class="campo__etiqueta">Socio</span><span class="campo__control"><select name="usuario_id">
+      <option value="">Toda la cooperativa</option>
+      {% for s in socios|sort(attribute="nombre") %}<option value="{{ s.id }}" {% if filtros.get('usuario_id') == s.id|string %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
+    </select></span></label>
+    {% endif %}
+    <div class="filtros__acciones">
+      <button class="boton boton--primario boton--chico" type="submit">Aplicar</button>
+      {% if filtros %}<a class="boton boton--fantasma boton--chico" href="{{ url_for(request.endpoint) }}">Quitar filtros</a>{% endif %}
+    </div>
+  </form>
+</details>
