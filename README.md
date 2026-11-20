@@ -83,6 +83,7 @@ pytest
 | `FLASK_SECRET_KEY` | Firma la cookie de sesión. Sin ella se usa una temporal y las sesiones se pierden al reiniciar. |
 | `PORT` | Puerto (8501 por defecto). |
 | `COOKIE_SEGURA` | `1` con HTTPS. |
+| `INACTIVIDAD_MINUTOS` | Minutos sin uso tras los que se cierra la sesión (30 por defecto). Un minuto antes se avisa en pantalla. |
 
 El mapa del campo se muestra con OpenStreetMap (iframe permitido en la CSP con `frame-src`).
 
@@ -93,14 +94,19 @@ La arquitectura de despliegue está en el README del backend.
 AgroTracker sirve para registrar cada cosecha como un **lote**, anotar a quién se vende y
 mostrar su origen con un **código QR**.
 
+Dentro de la aplicación, el menú **Ayuda** (o el botón **?** en el teléfono) tiene esta misma
+guía en pasos cortos, con dibujos de los botones que hay que tocar.
+
 ### Entrar
 
 1. Abre la página que te entregó la cooperativa.
 2. Presiona **Iniciar sesión**, escribe tu **correo** y **contraseña** y presiona **Entrar**.
 3. Para salir, usa **Cerrar sesión** (menú de la izquierda en computador, botón arriba a la derecha en el teléfono). Hazlo siempre en computadores
-   compartidos.
+   compartidos. Si dejas la aplicación **30 minutos sin usar**, la sesión se cierra sola (un
+   minuto antes aparece un aviso con el botón **Seguir aquí**). Lo pendiente no se pierde.
 
-¿No tienes cuenta? Pídela a la directiva de la cooperativa.
+¿No tienes cuenta? Pídela a la directiva de la cooperativa. Te llegará un correo con tu
+contraseña inicial.
 
 ### Olvidé mi contraseña
 
@@ -120,29 +126,40 @@ Queda como una aplicación más.
 
 ### Sin señal
 
-Si se corta la conexión aparece un aviso arriba. Igual puedes **registrar lotes, editarlos y
-anotar ventas**: quedan guardados en el teléfono y se envían solos cuando vuelve la señal. Arriba
+Si se corta la conexión aparece un aviso arriba. Igual puedes **registrar lotes, agregar
+entregas, editarlos y anotar ventas**: quedan guardados en el teléfono y se envían solos cuando vuelve la señal. Arriba
 verás cuántos hay **pendientes**; tócalo para verlos, enviarlos o descartarlos. Si alguno no se
 pudo guardar (por ejemplo, vendiste más kilos de los que quedaban), aparece en rojo para que lo
-revises. Las páginas que ya abriste se pueden mirar sin señal.
+revises. Las páginas que ya abriste se pueden mirar sin señal. Si un envío se corta a la mitad y
+se reintenta, el registro no queda repetido.
 
 ### Si eres productor
 
-- **Registrar una cosecha:** menú **Lotes** → completa cultivo, kilos y fecha → **Guardar**.
-  Aparece el código QR del lote: guárdalo o imprímelo para la caja o el envío.
-- **Corregir un lote:** en **Lotes**, presiona **Ver y editar** en el lote, cambia los datos y
-  presiona **Guardar cambios**. Ahí también puedes **imprimir la etiqueta** con el QR.
+- **Registrar una cosecha:** menú **Lotes** → completa cultivo, predio, superficie, kilos, fecha
+  y calidad → **Guardar lote**. Aparece el código QR del lote: guárdalo o imprímelo para la caja.
+- **Otra entrega del mismo lote:** entra al lote → **Agregar otra entrega** → kilos, fecha y
+  calidad. Los kilos del lote se suman solos.
+- **Corregir un lote:** en **Lotes**, presiona **Ver y editar**, cambia los datos, escribe el
+  **motivo** y presiona **Guardar cambios**. El cambio queda en el **historial** con tu nombre y
+  la fecha.
+- **Anular una entrega, una venta o el lote:** presiona **Anular** en la fila, escribe el motivo y
+  confirma. Nada se borra: queda tachado en el historial y deja de contar.
+- **Buscar lotes:** en **Lotes**, **Filtrar** por fechas, cultivo o estado (vigentes o anulados).
 - **Registrar una venta:** menú **Ventas** → elige el lote → comprador, kilos, precio por kilo
   y fecha → **Registrar**. No se puede vender más de lo que queda disponible.
 - **Ver el historial de un lote:** menú **Trazabilidad** → escribe el código del lote.
-  Ahí puedes **enviar el reporte por correo** (por ejemplo, a un auditor) y pedir una
-  **recomendación** para conservar y vender lo que queda.
+  Verás entregas, ventas y modificaciones en orden. Puedes **descargar el reporte en PDF o CSV**,
+  **enviarlo por correo** (por ejemplo, a un auditor) y pedir una **recomendación**. Bajo cada
+  recomendación aparecen los **datos que se usaron** y las recomendaciones anteriores. Hay un
+  máximo de consultas por día.
 - **Clima de tu campo:** menú **Clima**. La primera vez escribe el nombre de tu campo y presiona
   **Usar mi ubicación actual** (hazlo parado en el campo) o escribe las coordenadas, y
   **Guardar ubicación**. Verás el mapa, el clima de la estación más cercana de la Red
   Agroclimática Nacional, avisos de helada, lluvia, calor, viento u hongos, y el gráfico de las
   últimas 48 horas. Presiona **¿Qué debo tomar en consideración?** para una recomendación con IA.
-- En **Inicio** ves un resumen de tus kilos e ingresos, y el clima de tu campo.
+- En **Inicio** ves un resumen de tus kilos, entregas, ventas e ingresos, la última recomendación,
+  cuánto tardan en llegar los registros guardados sin señal y el clima de tu campo. Con
+  **Filtrar** eliges el período y el cultivo.
 
 Solo ves tus propios lotes.
 
@@ -150,13 +167,12 @@ Solo ves tus propios lotes.
 
 Puedes hacer todo lo anterior con los lotes de **todos** los socios, y además:
 
-- **Crear cuentas:** menú **Usuarios** → nombre, correo, contraseña inicial y rol → **Crear**.
-  Entrega el correo y la contraseña al socio.
-- **Quitar el acceso o cambiar el rol:** en **Usuarios**, junto a la persona, desmarca
-  **Puede entrar** o cambia el rol y presiona **Guardar**.
-- **Eliminar un lote:** en **Lotes** → **Ver y editar**, marca la confirmación y presiona **Eliminar lote**
-  (también borra sus ventas).
-- En **Inicio** ves el resumen de toda la cooperativa.
+- **Crear cuentas:** menú **Usuarios** → nombre, RUT, correo y rol → **Crear usuario**. El RUT
+  se revisa con su dígito verificador. La contraseña inicial es opcional: si la dejas en blanco,
+  el sistema crea una. En ambos casos se **envía por correo** al socio.
+- **Editar una cuenta:** en **Usuarios** → **Editar** → cambia nombre, correo, RUT, rol o
+  **Puede entrar** → **Guardar**.
+- En **Inicio** ves el resumen de toda la cooperativa y puedes **filtrar por socio**.
 - En **Clima** puedes elegir el campo de cualquier socio en **Ver campo de**.
 
 ### Para compradores y auditores (sin cuenta)
@@ -164,4 +180,5 @@ Puedes hacer todo lo anterior con los lotes de **todos** los socios, y además:
 Abre AgroTracker y presiona **Escanear código QR**, permite usar la cámara y apunta al QR de la
 caja (en Chrome y Android se lee dentro de la página). También sirve escanearlo con la cámara del
 teléfono, o escribir el código del lote. Se abre la ficha con el origen del lote: productor,
-cultivo, fecha de cosecha y kilos. Las ventas y precios no se muestran.
+predio, cultivo, entregas (fecha, kilos y calidad) y si el lote está vigente o anulado. Las ventas
+y precios no se muestran.
