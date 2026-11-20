@@ -15,7 +15,7 @@
   <script src="{{ url_for('static', filename='js/cola.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
-<body class="{{ 'con-sesion' if usuario else 'sin-sesion' }}" {% if usuario %}data-usuario-id="{{ usuario.id }}"{% endif %}>
+<body class="{{ 'con-sesion' if usuario else 'sin-sesion' }}" {% if usuario %}data-usuario-id="{{ usuario.id }}" data-inactividad="{{ inactividad_minutos }}"{% endif %}>
 {% include "_iconos.html" %}
 <div class="banda-red" data-banda-red hidden>
   {{ icono("sin-red") }}
@@ -43,6 +43,7 @@
       {{ enlace("clima.clima", "sol", "Clima") }}
       {{ enlace("trazabilidad.ficha", "qr", "Trazabilidad") }}
       {% if es_admin %}{{ enlace("panel.usuarios", "usuarios", "Usuarios") }}{% endif %}
+      {{ enlace("panel.ayuda", "alerta", "Ayuda") }}
     </nav>
     <div class="lateral__pie">
       <div class="perfil">
@@ -65,6 +66,7 @@
         <button type="button" class="chip-cola" data-cola-abrir hidden>
           {{ icono("nube") }}<span><b data-cola-cuenta>0</b> <span data-cola-texto>pendientes</span></span>
         </button>
+        <span class="solo-movil"><a class="boton-icono" href="{{ url_for('panel.ayuda') }}" aria-label="Ayuda">?</a></span>
         <form method="post" action="{{ url_for('auth.logout') }}" class="solo-movil" data-cerrar-sesion>
           {{ csrf() }}
           <button class="boton-icono" type="submit" aria-label="Cerrar sesión">{{ icono("salir") }}</button>

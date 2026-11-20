@@ -19,7 +19,10 @@ from rutas import auth, clima, cola, panel, pwa, trazabilidad
 load_dotenv()
 
 ROLES = {"admin": "Administrador", "productor": "Productor"}
+CALIDADES = {"extra": "Extra", "primera": "Primera", "segunda": "Segunda", "descarte": "Descarte"}
 METODOS_CON_EFECTO = {"POST", "PUT", "PATCH", "DELETE"}
+# Solicitudes que hace la app sola (no la persona): no cuentan como actividad.
+SIN_ACTIVIDAD = {"static", "pwa.service_worker", "pwa.manifiesto", "pwa.sin_conexion", "pwa.qr", "cola.estado_sesion"}
 
 
 def create_app(config: dict | None = None) -> Flask:
@@ -36,6 +39,7 @@ def create_app(config: dict | None = None) -> Flask:
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=os.getenv("COOKIE_SEGURA", "0") == "1",
         PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+        INACTIVIDAD_MINUTOS=int(os.getenv("INACTIVIDAD_MINUTOS", "30")),
     )
     if config:
         app.config.update(config)
@@ -44,6 +48,7 @@ def create_app(config: dict | None = None) -> Flask:
         app.register_blueprint(blueprint)
 
     app.jinja_env.globals["csrf_token"] = sesion.csrf_token  # global: lo usan las macros importadas
+    app.jinja_env.globals["CALIDADES"] = CALIDADES
     registrar_filtros(app)
     registrar_seguridad(app)
     registrar_errores(app)
@@ -54,6 +59,7 @@ def create_app(config: dict | None = None) -> Flask:
             "usuario": sesion.usuario(),
             "es_admin": sesion.es_admin(),
             "ROLES": ROLES,
+            "inactividad_minutos": app.config["INACTIVIDAD_MINUTOS"],
             "hoy": date.today().isoformat(),
         }
 
@@ -61,6 +67,25 @@ def create_app(config: dict | None = None) -> Flask:
 
 
 def registrar_seguridad(app: Flask) -> None:
+    @app.before_request
+    def cerrar_por_inactividad():
+        """Tras INACTIVIDAD_MINUTOS sin usar la app la sesión se cierra (equipos compartidos en terreno)."""
+        if not sesion.activa() or request.endpoint in SIN_ACTIVIDAD:
+            return None
+        if sesion.inactiva(app.config["INACTIVIDAD_MINUTOS"]):
+            try:
+                api.logout()
+            except api.BackendError:
+                pass
+            sesion.cerrar()
+            mensaje = "Cerramos tu sesión porque estuvo un rato sin uso. Vuelve a entrar."
+            if es_peticion_json():
+                return jsonify(detail=mensaje), 401
+            flash(mensaje, "aviso")
+            return redirect(url_for("auth.login", siguiente=request.full_path if request.method == "GET" else None))
+        sesion.registrar_actividad()
+        return None
+
     @app.before_request
     def verificar_csrf():
         if request.method not in METODOS_CON_EFECTO or app.config.get("TESTING_SIN_CSRF"):
@@ -144,6 +169,34 @@ def registrar_filtros(app: Flask) -> None:
             return datetime.fromisoformat(str(valor)).strftime("%d-%m %H:%M")
         except ValueError:
             return str(valor)
+
+    @app.template_filter("duracion")
+    def duracion(segundos) -> str:
+        """Demora legible: 45 s, 12 min, 3 h 5 min, 2 días."""
+        if segundos is None:
+            return "—"
+        s = int(round(segundos))
+        if s < 60:
+            return f"{s} s"
+        if s < 3600:
+            return f"{s // 60} min"
+        if s < 86400:
+            h, m = divmod(s // 60, 60)
+            return f"{h} h {m} min" if m else f"{h} h"
+        return f"{s // 86400} día{'s' if s >= 172800 else ''}"
+
+    @app.template_filter("rut")
+    def rut(valor) -> str:
+        """12345678-5 → 12.345.678-5"""
+        cuerpo, _, dv = str(valor or "").partition("-")
+        return f"{int(cuerpo):,}".replace(",", ".") + f"-{dv}" if cuerpo.isdigit() and dv else str(valor or "")
+
+    @app.template_filter("accion")
+    def accion(cambio) -> str:
+        """'Entrega registrada', 'Lote editado', 'Venta anulada'."""
+        final = "o" if cambio["entidad"] == "lote" else "a"
+        raiz = {"creado": "registrad", "editado": "editad", "anulado": "anulad"}.get(cambio["accion"])
+        return f"{cambio['entidad'].capitalize()} {raiz}{final}" if raiz else f"{cambio['entidad'].capitalize()} {cambio['accion']}"
 
     app.template_filter("texto_ia")(texto_ia)
 
