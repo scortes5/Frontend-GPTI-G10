@@ -9,6 +9,9 @@
  *
  * Estados: "pendiente" (se reintentará) · "error" (el servidor rechazó los datos: el usuario decide).
  * Cada registro guarda el id del usuario que lo creó y solo se envía con la sesión de ese usuario.
+ *
+ * Al enviar, cada registro lleva su id (X-Evento-Id) y el momento en que se guardó (X-Evento-Creado):
+ * el servidor no aplica dos veces el mismo registro y mide cuánto tardó en llegar.
  */
 (function (global) {
   "use strict";
@@ -70,11 +73,14 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2);
   }
 
-  /** Guarda una solicitud para enviarla después. */
-  async function encolar({ url, metodo, cuerpo, usuarioId, tipo, filtro, titulo, resumen }) {
+  /**
+   * Guarda una solicitud para enviarla después. Si ya se intentó enviar en línea, se reutilizan su
+   * id y su hora: si ese primer envío sí llegó, el servidor reconoce el reintento y no lo duplica.
+   */
+  async function encolar({ url, metodo, cuerpo, usuarioId, tipo, filtro, titulo, resumen, id, creado }) {
     const item = {
-      id: nuevoId(), url, metodo, cuerpo, usuarioId, tipo, filtro: filtro || null,
-      titulo, resumen, creado: Date.now(), estado: "pendiente", error: null, intentos: 0,
+      id: id || nuevoId(), url, metodo, cuerpo, usuarioId, tipo, filtro: filtro || null,
+      titulo, resumen, creado: creado || Date.now(), estado: "pendiente", error: null, intentos: 0,
     };
     await guardar(item);
     await pedirSincronizacionEnSegundoPlano();
@@ -157,7 +163,10 @@
           r = await fetch(item.url, {
             method: item.metodo,
             credentials: "same-origin",
-            headers: { "Content-Type": "application/json", "X-CSRF": sesion.csrf, "X-Cola": "1" },
+            headers: {
+              "Content-Type": "application/json", "X-CSRF": sesion.csrf, "X-Cola": "1",
+              "X-Evento-Id": item.id, "X-Evento-Creado": String(item.creado),
+            },
             body: JSON.stringify(item.cuerpo),
           });
         } catch (_) {
@@ -189,5 +198,5 @@
     return resultado;
   }
 
-  global.Cola = { encolar, listar, borrar, reintentar, sincronizar, escuchar, ETIQUETA_SYNC };
+  global.Cola = { encolar, listar, borrar, reintentar, sincronizar, escuchar, nuevoId, ETIQUETA_SYNC };
 })(self);

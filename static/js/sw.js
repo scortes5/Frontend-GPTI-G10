@@ -10,7 +10,7 @@
  */
 importScripts("/static/js/cola.js");
 
-const VERSION = "v3";
+const VERSION = "v4";
 const ESTATICOS = `agrotracker-estaticos-${VERSION}`;
 const PAGINAS = `agrotracker-paginas-${VERSION}`;
 const QR = `agrotracker-qr-${VERSION}`;

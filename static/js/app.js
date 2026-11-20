@@ -71,6 +71,7 @@
       if (valor == null || valor === "") return "—";
       if (campo === "fecha_cosecha" || campo === "fecha") return valor.split("-").reverse().join("-");
       if (campo === "kilos") return numero.format(Number(valor));
+      if (campo === "calidad") return valor.charAt(0).toUpperCase() + valor.slice(1);
       if (campo === "precio_por_kilo") return new Intl.NumberFormat("es-CL").format(Number(valor));
       return valor;
     });
@@ -81,9 +82,10 @@
     if (boton) { boton.disabled = si; boton.setAttribute("aria-busy", si ? "true" : "false"); }
   }
 
-  async function guardarEnCola(form, datos, motivo) {
+  async function guardarEnCola(form, datos, motivo, evento = {}) {
     if (usuarioId == null || !window.Cola) return false;
     await Cola.encolar({
+      ...evento,
       url: form.dataset.cola,
       metodo: form.dataset.colaMetodo || "POST",
       cuerpo: datos,
@@ -103,10 +105,11 @@
       if (!window.Cola || !("indexedDB" in window)) return; // envío normal al servidor
       evento.preventDefault();
       const datos = datosDe(form);
+      const registro = { id: Cola.nuevoId(), creado: Date.now() };
       ocupado(form, true);
       try {
         if (!navigator.onLine) {
-          await guardarEnCola(form, datos, "Guardado en este equipo. Se enviará solo cuando vuelva la señal.");
+          await guardarEnCola(form, datos, "Guardado en este equipo. Se enviará solo cuando vuelva la señal.", registro);
           return;
         }
         let respuesta;
@@ -114,11 +117,14 @@
           respuesta = await fetch(form.dataset.cola, {
             method: form.dataset.colaMetodo || "POST",
             credentials: "same-origin",
-            headers: { "Content-Type": "application/json", "X-CSRF": csrf() },
+            headers: {
+              "Content-Type": "application/json", "X-CSRF": csrf(),
+              "X-Evento-Id": registro.id, "X-Evento-Creado": String(registro.creado),
+            },
             body: JSON.stringify(datos),
           });
         } catch (_) {
-          await guardarEnCola(form, datos, "No hubo conexión. Quedó guardado y se enviará solo cuando vuelva la señal.");
+          await guardarEnCola(form, datos, "No hubo conexión. Quedó guardado y se enviará solo cuando vuelva la señal.", registro);
           return;
         }
         const cuerpo = await respuesta.json().catch(() => ({}));
@@ -127,12 +133,12 @@
           return;
         }
         if (respuesta.status === 401) {
-          await guardarEnCola(form, datos, "Tu sesión expiró. Quedó guardado: se enviará cuando vuelvas a iniciar sesión.");
+          await guardarEnCola(form, datos, "Tu sesión expiró. Quedó guardado: se enviará cuando vuelvas a iniciar sesión.", registro);
           setTimeout(() => window.location.assign("/login?siguiente=" + encodeURIComponent(location.pathname + location.search)), 2500);
           return;
         }
         if (respuesta.status >= 500 || (respuesta.status === 403 && cuerpo.csrf)) {
-          await guardarEnCola(form, datos, "El servidor no respondió. Quedó guardado y se reintentará en un momento.");
+          await guardarEnCola(form, datos, "El servidor no respondió. Quedó guardado y se reintentará en un momento.", registro);
           sincronizar();
           return;
         }
@@ -418,6 +424,37 @@
       buscar();
     });
   });
+
+  // ---------- Cierre de sesión por inactividad ----------
+
+  // El servidor cierra la sesión tras N minutos sin uso; aquí se avisa un minuto antes y, al
+  // vencer, se recarga la página para que el servidor lleve al inicio de sesión.
+  const minutosInactividad = Number(document.body.dataset.inactividad || 0);
+  if (usuarioId != null && minutosInactividad > 0) {
+    let ultima = Date.now();
+    let avisado = false;
+    let ultimoAviso = Date.now(); // última vez que se le contó al servidor que la persona sigue aquí
+    const seguirAqui = () => fetch("/api/actividad", { method: "POST", credentials: "same-origin", headers: { "X-CSRF": csrf() } }).catch(() => {});
+    ["pointerdown", "keydown", "scroll", "touchstart"].forEach((tipo) =>
+      window.addEventListener(tipo, () => {
+        ultima = Date.now();
+        avisado = false;
+        // Llenar un formulario largo también es actividad, aunque no se cargue otra página.
+        if (navigator.onLine && ultima - ultimoAviso > 5 * 60000) { ultimoAviso = ultima; seguirAqui(); }
+      }, { passive: true }));
+    setInterval(() => {
+      const quedan = minutosInactividad * 60000 - (Date.now() - ultima);
+      if (quedan <= 0) {
+        if (navigator.onLine) location.reload();
+      } else if (quedan <= 60000 && !avisado) {
+        avisado = true;
+        toast("Tu sesión se cerrará en un minuto por inactividad.", {
+          tipo: "aviso", duracion: 55000,
+          accion: { texto: "Seguir aquí", hacer: () => { ultima = ultimoAviso = Date.now(); avisado = false; seguirAqui(); } },
+        });
+      }
+    }, 15000);
+  }
 
   // ---------- Detalles de la interfaz ----------
 
