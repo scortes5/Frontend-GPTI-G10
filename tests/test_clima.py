@@ -29,7 +29,11 @@ def con_clima(backend):  # noqa: F811
     backend.falso("clima", CLIMA)
     backend.falso("mi_campo", CAMPO)
     backend.falso("listar_campos", [CAMPO])
-    backend.falso("recomendacion_clima", "- **Helada:** cubre los almácigos esta noche")
+    backend.falso("recomendacion_clima", {
+        "id": 1, "tipo": "clima", "lote_codigo": None, "proveedor": "simulado", "creado": "2026-11-20T08:00:00",
+        "texto": "- **Helada:** cubre los almácigos esta noche", "consultas_restantes": 19,
+        "datos_usados": [{"dato": "Temperatura 24 h", "valor": "-0.5 a 12.5 °C"}],
+    })
     return backend
 
 
@@ -40,6 +44,24 @@ def test_dashboard_de_clima(cliente, con_clima):  # noqa: F811
     assert "openstreetmap.org/export/embed.html" in html
     assert "Helada" in html and "Datos de ejemplo" in html
     assert "grafico__linea" in html
+
+
+def test_muestra_sensores_del_campo(cliente, con_clima):  # noqa: F811
+    con_clima.falso("clima", {**CLIMA, "sensores": {
+        "fuente": "simulado", "dispositivo": "IC-1234", "reciente": True,
+        "actual": {"fecha_hora": "2026-11-15T16:00:00", "humedad_suelo": 18.4, "temperatura_suelo": 21.5},
+    }})
+    entrar(cliente)
+    html = cliente.get("/clima").get_data(as_text=True)
+    assert "Sensores del campo" in html and "IC-1234" in html and "18 %" in html and "21,5 °C" in html
+    assert "Agromet e Instacrops" in html
+
+
+def test_sensores_caidos_no_botan_el_clima(cliente, con_clima):  # noqa: F811
+    con_clima.falso("clima", {**CLIMA, "sensores": None, "aviso_sensores": "Instacrops no está disponible (503)."})
+    entrar(cliente)
+    html = cliente.get("/clima").get_data(as_text=True)
+    assert "Sensores no disponibles" in html and "Instacrops no está disponible" in html and "Taplon" in html
 
 
 def test_sin_campo_muestra_formulario(cliente, backend):  # noqa: F811

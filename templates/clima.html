@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icono, campo as campo_form, csrf %}
+{% from "_macros.html" import icono, campo as campo_form, csrf, datos_ia %}
 {% block titulo %}Clima{% endblock %}
 
 {% macro formulario_campo(actual) %}
@@ -64,7 +64,10 @@
 
 {% else %}
   {% if clima and clima.fuente == "simulado" %}
-  <div class="aviso aviso--aviso">{{ icono("alerta") }}<span><strong>Datos de ejemplo.</strong> La conexión con Agromet aún no está activa: los valores son simulados para la estación más cercana.</span></div>
+  <div class="aviso aviso--aviso">{{ icono("alerta") }}<span><strong>Datos de ejemplo.</strong> La conexión con Agromet{% if clima.sensores %} e Instacrops{% endif %} aún no está activa: los valores son simulados.</span></div>
+  {% endif %}
+  {% if clima and clima.aviso_sensores %}
+  <div class="aviso aviso--aviso">{{ icono("alerta") }}<span><strong>Sensores no disponibles.</strong> {{ clima.aviso_sensores }} El clima sigue actualizado.</span></div>
   {% endif %}
   {% if error_clima %}
   <div class="aviso aviso--error">{{ icono("alerta") }}<span><strong>No pudimos obtener el clima.</strong> {{ error_clima }}</span></div>
@@ -105,6 +108,18 @@
           <li>{{ icono("nube") }}<span>Lluvia 24 h</span><strong>{{ r.precipitacion|num }} mm</strong></li>
         </ul>
       </section>
+
+      {% if clima.sensores %}
+      {% set s = clima.sensores %}
+      <section class="tarjeta">
+        <h2>{{ icono("antena") }} Sensores del campo</h2>
+        <ul class="ahora__datos">
+          <li>{{ icono("gota") }}<span>Humedad del suelo</span><strong>{{ s.actual.humedad_suelo|num(0) if s.actual and s.actual.humedad_suelo is not none else "—" }} %</strong></li>
+          <li>{{ icono("termometro") }}<span>Temperatura del suelo</span><strong>{{ s.actual.temperatura_suelo|num if s.actual and s.actual.temperatura_suelo is not none else "—" }} °C</strong></li>
+        </ul>
+        <p class="campo__ayuda">Dispositivo {{ s.dispositivo }}{% if s.actual %} · última lectura: {{ s.actual.fecha_hora|hora }}{% endif %}{% if not s.reciente %} · sin datos recientes{% endif %}</p>
+      </section>
+      {% endif %}
 
       <section class="tarjeta">
         <h2>{{ icono("alerta") }} Qué tomar en cuenta</h2>
@@ -148,10 +163,10 @@
   <section class="tarjeta tarjeta--ia">
     <h2>{{ icono("chispa") }} Recomendación para tu campo</h2>
     {% if recomendacion %}
-      <div class="texto-ia">{{ recomendacion|texto_ia }}</div>
-      <p class="campo__ayuda">Generada con IA a partir del clima de la estación y de la cosecha en bodega. Úsala como apoyo: tú conoces tu campo.</p>
+      {{ datos_ia(recomendacion) }}
+      <p class="campo__ayuda">Basada en el clima, los sensores disponibles y tu cosecha en bodega. Úsala como apoyo: tú conoces tu campo.</p>
     {% else %}
-      <p class="sutil">La IA revisa el clima reciente, las alertas y lo que tienes en bodega, y te dice qué tomar en consideración hoy.</p>
+      <p class="sutil">Revisamos el clima reciente, los sensores, las alertas y lo que tienes en bodega para decirte qué tomar en consideración hoy.</p>
     {% endif %}
     <form method="post" action="{{ url_for('clima.recomendacion') }}" data-requiere-red data-cargando="Analizando el clima…">
       {{ csrf() }}

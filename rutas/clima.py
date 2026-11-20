@@ -66,7 +66,7 @@ def grafico(serie: list[dict]) -> dict | None:
     }
 
 
-def _pagina(recomendacion: str | None = None, status: int = 200):
+def _pagina(recomendacion: dict | None = None, status: int = 200):
     usuario_id = _usuario_objetivo()
     campos = api.listar_campos() if sesion.es_admin() else []
     clima = campo = error_clima = None
@@ -116,10 +116,10 @@ def guardar_campo():
 def recomendacion():
     usuario_id = _usuario_objetivo()
     try:
-        texto = api.recomendacion_clima(usuario_id)
+        recomendacion = api.recomendacion_clima(usuario_id)
     except api.SinConexion:
         raise
     except api.BackendError as e:
         flash(f"No se pudo generar la recomendación. {e}", "error")
         return redirect(url_for("clima.clima", usuario=usuario_id or None))
-    return _pagina(recomendacion=texto)
+    return _pagina(recomendacion=recomendacion)

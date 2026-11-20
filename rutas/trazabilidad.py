@@ -12,7 +12,14 @@ from rutas.permisos import requiere_sesion
 bp = Blueprint("trazabilidad", __name__)
 
 
-def _ficha(codigo: str, recomendacion: str | None = None, status: int = 200):
+def _historial_ia(codigo: str) -> list[dict]:
+    try:
+        return api.recomendaciones_lote(codigo)
+    except api.BackendError:
+        return []
+
+
+def _ficha(codigo: str, recomendacion: dict | None = None, status: int = 200):
     if not codigo:
         return render_template("trazabilidad.html", codigo="", traza=None, publico=None), status
     traza = publico = None
@@ -29,7 +36,8 @@ def _ficha(codigo: str, recomendacion: str | None = None, status: int = 200):
         flash(f"No encontramos un lote con el código «{codigo}».", "error")
         return render_template("trazabilidad.html", codigo=codigo, traza=None, publico=None), 404
     return (
-        render_template("trazabilidad.html", codigo=codigo, traza=traza, publico=publico, recomendacion=recomendacion),
+        render_template("trazabilidad.html", codigo=codigo, traza=traza, publico=publico, recomendacion=recomendacion,
+                        previas=_historial_ia(codigo) if traza else []),
         status,
     )
 
@@ -66,7 +74,7 @@ def enviar_reporte(codigo):
 @requiere_sesion
 def recomendacion(codigo):
     try:
-        texto = api.recomendacion(codigo)
+        recomendacion = api.recomendacion(codigo)
     except api.ErrorDeDatos as e:
         flash(f"No se pudo generar la recomendación. {e}", "error")
         return redirect(url_for("trazabilidad.ficha", codigo=codigo))
@@ -75,4 +83,4 @@ def recomendacion(codigo):
     except api.BackendError as e:  # p. ej. 503 del proveedor de IA
         flash(f"No se pudo generar la recomendación. {e}", "error")
         return redirect(url_for("trazabilidad.ficha", codigo=codigo))
-    return _ficha(codigo, recomendacion=texto)
+    return _ficha(codigo, recomendacion=recomendacion)
