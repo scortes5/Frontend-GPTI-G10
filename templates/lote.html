@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, csrf, campo, dato, tabla_ventas, tabla_entregas, estado, anular %}
+{% block titulo %}Lote {{ lote.codigo }}{% endblock %}
+{% block contenido %}
+{% set anulado = lote.estado == "anulado" %}
+<nav class="migas" aria-label="Ruta"><a href="{{ url_for('panel.lotes') }}">Lotes</a> <span aria-hidden="true">/</span> <span>{{ lote.codigo }}</span></nav>
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo"><code class="codigo">{{ lote.codigo }}</code> {{ estado(lote.estado) }}</p>
+    <h1>{{ lote.cultivo }} <span class="sutil">· {{ lote.productor }}</span></h1>
+    {% if lote.predio or lote.superficie_ha %}<p class="sutil">{% if lote.predio %}Predio {{ lote.predio }}{% endif %}{% if lote.predio and lote.superficie_ha %} · {% endif %}{% if lote.superficie_ha %}{{ lote.superficie_ha|num(2) }} ha{% endif %}</p>{% endif %}
+  </div>
+  <div class="cabecera__acciones">
+    {% if not anulado %}<a class="boton boton--suave" href="{{ url_for('panel.ventas', codigo=lote.codigo) }}">{{ icono("ventas") }} Registrar venta</a>{% endif %}
+    <a class="boton boton--suave" href="{{ url_for('trazabilidad.ficha', codigo=lote.codigo) }}">{{ icono("qr") }} Trazabilidad</a>
+  </div>
+</header>
+
+{% if anulado %}
+<div class="aviso aviso--error">{{ icono("alerta") }}<span>Lote anulado: {{ lote.motivo_anulacion }}. Se conserva con su historial, pero no admite cambios ni cuenta en los indicadores.</span></div>
+{% endif %}
+
+<div class="rejilla-ficha">
+  <section class="tarjeta tarjeta-qr" data-zona-impresion>
+    <img src="{{ url_for('pwa.qr', codigo=lote.codigo) }}" alt="Código QR del lote {{ lote.codigo }}" width="220" height="220">
+    <div class="tarjeta-qr__texto">
+      <strong>{{ lote.cultivo }}</strong>
+      <span>{{ lote.productor }} · {{ lote.fecha_cosecha|fecha }}</span>
+      <code class="codigo">{{ lote.codigo }}</code>
+    </div>
+    <button type="button" class="boton boton--primario no-imprimir" data-imprimir>{{ icono("imprimir") }} Imprimir etiqueta</button>
+    <a class="boton boton--enlace no-imprimir" href="{{ url_for('pwa.qr', codigo=lote.codigo) }}" download="QR-{{ lote.codigo }}.png">Descargar imagen</a>
+  </section>
+
+  <div class="pila">
+    <section class="datos-lote">
+      {{ dato("Kilos cosechados", lote.kilos|kg) }}
+      {{ dato("Vendidos", traza.kilos_vendidos|kg) }}
+      {{ dato("Disponibles", traza.kilos_disponibles|kg, "dato--destacado") }}
+      {{ dato("Ingresos", traza.ingresos|clp) }}
+    </section>
+
+    <section class="tarjeta">
+      <h2>{{ icono("imprimir") }} Reporte del lote</h2>
+      <p class="sutil">Ficha, entregas, ventas e historial de cambios, para auditorías o para guardar.</p>
+      <div class="formulario-linea">
+        <a class="boton boton--suave" href="{{ url_for('panel.reporte', codigo=lote.codigo, formato='pdf') }}" download>Descargar PDF</a>
+        <a class="boton boton--suave" href="{{ url_for('panel.reporte', codigo=lote.codigo, formato='csv') }}" download>Descargar CSV (Excel)</a>
+      </div>
+    </section>
+
+    {% if not anulado %}
+    <section class="tarjeta">
+      <h2>Editar datos del lote</h2>
+      <form method="post" action="{{ url_for('panel.editar_lote', codigo=lote.codigo) }}" class="formulario"
+            data-cola="{{ url_for('cola.editar_lote', codigo=lote.codigo) }}" data-cola-metodo="PATCH" data-cola-tipo="lote-editar"
+            data-cola-titulo="Cambios al lote {{ lote.codigo }}" data-cola-resumen="{cultivo} · predio {predio} · motivo: {motivo}">
+        {{ csrf() }}
+        {% set edicion = true %}
+        {% include "_form_lote.html" %}
+        <button class="boton boton--primario" type="submit">{{ icono("check") }} Guardar cambios</button>
+      </form>
+    </section>
+    {% endif %}
+  </div>
+</div>
+
+<section class="tarjeta">
+  <div class="tarjeta__cabeza">
+    <h2>Entregas de cosecha <span class="contador">{{ traza.entregas|selectattr("estado", "ne", "anulado")|list|length }}</span></h2>
+  </div>
+  <div class="pendientes" data-cola-lista="entrega" data-cola-filtro="{{ lote.codigo }}" hidden>
+    <h3>{{ icono("nube") }} Esperando conexión</h3>
+    <ul></ul>
+  </div>
+  {{ tabla_entregas(traza.entregas, lote.codigo if not anulado else None) }}
+  {% if not anulado %}
+  <details class="desplegable" {% if not traza.entregas %}open{% endif %}>
+    <summary class="boton boton--suave">{{ icono("mas") }} Agregar otra entrega</summary>
+    <form method="post" action="{{ url_for('panel.agregar_entrega', codigo=lote.codigo) }}" class="formulario"
+          data-cola="{{ url_for('cola.agregar_entrega', codigo=lote.codigo) }}" data-cola-metodo="POST" data-cola-tipo="entrega"
+          data-cola-filtro="{{ lote.codigo }}" data-cola-titulo="Entrega del lote {{ lote.codigo }}"
+          data-cola-resumen="{kilos} kg · {calidad} · {fecha}">
+      {{ csrf() }}
+      <div class="fila-campos">
+        {{ campo("kilos", "Kilos entregados", "", tipo="number", sufijo="kg", required=true, min="0.1", step="any", inputmode="decimal") }}
+        {{ campo("fecha", "Fecha de entrega", hoy, tipo="date", required=true, max=hoy) }}
+      </div>
+      {% set valores = {} %}
+      {% include "_calidad.html" %}
+      <button class="boton boton--primario" type="submit">{{ icono("check") }} Guardar entrega</button>
+    </form>
+  </details>
+  {% endif %}
+</section>
+
+<section class="tarjeta">
+  <h2>Ventas del lote</h2>
+  {{ tabla_ventas(traza.ventas, lote.codigo) }}
+</section>
+
+<section class="tarjeta">
+  <h2>Historial de cambios</h2>
+  {% if traza.historial %}
+  <ol class="historial">
+    {% for c in traza.historial|reverse %}
+    <li class="historial__item historial__item--{{ c.accion }}">
+      <div class="historial__cabeza"><strong>{{ c|accion }}</strong><span>{{ c.fecha|hora }} · {{ c.usuario_nombre }}</span></div>
+      {% if c.detalle %}<p>{{ c.detalle }}</p>{% endif %}
+      {% if c.motivo %}<p class="historial__motivo">Motivo: {{ c.motivo }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="vacio">Sin cambios registrados.</p>
+  {% endif %}
+</section>
+
+{% if not anulado %}
+<section class="tarjeta tarjeta--peligro">
+  <h2>{{ icono("basura") }} Anular lote</h2>
+  <p>El lote no se borra: queda marcado como anulado, con el motivo, y deja de contar en los indicadores.
+  {% if traza.ventas|selectattr("estado", "ne", "anulado")|list %}Primero anula sus ventas vigentes.{% endif %}</p>
+  {{ anular(url_for('panel.anular_lote', codigo=lote.codigo), "¿Por qué anulas este lote?", "Anular lote") }}
+</section>
+{% endif %}
+{% endblock %}

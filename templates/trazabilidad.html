@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, campo, csrf, dato, tabla_ventas, tabla_entregas, estado, datos_ia, historial_ia %}
+{% block titulo %}Trazabilidad{% endblock %}
+
+{% macro buscador() %}
+<form method="get" action="{{ url_for('trazabilidad.ficha') }}" class="buscador-lote" role="search">
+  <label class="campo">
+    <span class="campo__etiqueta">Código del lote</span>
+    <span class="campo__control"><input type="text" name="codigo" value="{{ codigo }}" placeholder="Escribe el código o escanea el QR" autocomplete="off" autocapitalize="characters" required></span>
+  </label>
+  <button class="boton boton--primario" type="submit">{{ icono("buscar") }} Buscar</button>
+</form>
+{% endmacro %}
+
+{% macro ficha_publica(lote) %}
+<article class="ficha-publica tarjeta">
+  {% if lote.estado == "anulado" %}
+  <div class="ficha-publica__sello ficha-publica__sello--anulado">{{ icono("alerta") }} Este lote fue anulado por la cooperativa</div>
+  {% else %}
+  <div class="ficha-publica__sello">{{ icono("check") }} Origen registrado en AgroTracker</div>
+  {% endif %}
+  <h1>{{ lote.cultivo }}</h1>
+  <p class="ficha-publica__productor">Cosechado por <strong>{{ lote.productor }}</strong>{% if lote.predio %} en el predio {{ lote.predio }}{% endif %}<br>Cooperativa Newen al Sur</p>
+  <div class="datos-lote datos-lote--3">
+    {{ dato("Primera cosecha", lote.fecha_cosecha|fecha) }}
+    {{ dato("Kilos cosechados", lote.kilos|kg) }}
+    {{ dato("Código", lote.codigo) }}
+  </div>
+  {% if lote.entregas %}
+  <h2 class="ficha-publica__subtitulo">Entregas de cosecha</h2>
+  <ul class="ficha-publica__entregas">
+    {% for e in lote.entregas|sort(attribute="fecha") %}
+    <li><span>{{ e.fecha|fecha }}</span><strong>{{ e.kilos|kg }}</strong><span class="pastilla">{{ CALIDADES.get(e.calidad, e.calidad) }}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <img class="ficha-publica__qr" src="{{ url_for('pwa.qr', codigo=lote.codigo) }}" alt="Código QR del lote {{ lote.codigo }}" width="160" height="160">
+</article>
+{% endmacro %}
+
+{% block publico %}
+<div class="publico__marco">
+  <a class="marca marca--compacta" href="{{ url_for('auth.login') }}"><span class="marca__logo">{{ icono("hoja") }}</span><strong>AgroTracker</strong></a>
+  {% if publico %}
+    {{ ficha_publica(publico) }}
+  {% else %}
+  <section class="tarjeta">
+    <h1>Origen de un lote</h1>
+    <p class="sutil">Escanea el código QR de la caja con la cámara del teléfono o escribe el código.</p>
+    {{ buscador() }}
+  </section>
+  {% endif %}
+  <p class="sutil centrado pequeño">¿Eres socio de la cooperativa? <a href="{{ url_for('auth.login') }}">Inicia sesión</a></p>
+</div>
+{% endblock %}
+
+{% block contenido %}
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo">Historial del lote</p>
+    <h1>Trazabilidad</h1>
+  </div>
+</header>
+<section class="tarjeta">{{ buscador() }}</section>
+
+{% if publico %}
+  <div class="aviso aviso--info">{{ icono("alerta") }}<span>Este lote es de otro productor: solo ves su origen.</span></div>
+  {{ ficha_publica(publico) }}
+{% elif traza %}
+  {% set lote = traza.lote %}
+  <div class="rejilla-ficha">
+    <section class="tarjeta tarjeta-qr">
+      <img src="{{ url_for('pwa.qr', codigo=lote.codigo) }}" alt="Código QR del lote {{ lote.codigo }}" width="200" height="200">
+      <div class="tarjeta-qr__texto">
+        <strong>{{ lote.cultivo }}</strong>
+        <span>{{ lote.productor }}</span>
+        <code class="codigo">{{ lote.codigo }}</code>
+      </div>
+      <span>{{ estado(lote.estado) }}</span>
+      <a class="boton boton--suave" href="{{ url_for('panel.lote', codigo=lote.codigo) }}">Ver y editar lote</a>
+      <a class="boton boton--enlace" href="{{ url_for('panel.reporte', codigo=lote.codigo, formato='pdf') }}" download>Descargar PDF</a>
+      <a class="boton boton--enlace" href="{{ url_for('panel.reporte', codigo=lote.codigo, formato='csv') }}" download>Descargar CSV</a>
+    </section>
+
+    <div class="pila">
+      {# Eventos en orden: entregas y ventas por su fecha; las anulaciones se muestran tachadas. #}
+      {% set eventos = [] %}
+      {% for e in traza.entregas %}{% set _ = eventos.append({"fecha": e.fecha, "tipo": "entrega", "dato": e}) %}{% endfor %}
+      {% for v in traza.ventas %}{% set _ = eventos.append({"fecha": v.fecha, "tipo": "venta", "dato": v}) %}{% endfor %}
+      <ol class="linea-tiempo" aria-label="Historial">
+        {% for ev in eventos|sort(attribute="fecha") %}
+        {% set d = ev.dato %}
+        <li{% if d.estado == "anulado" %} class="linea-tiempo__anulado"{% endif %}>
+          {% if ev.tipo == "entrega" %}
+          <span class="linea-tiempo__punto"></span><div><strong>Entrega · {{ d.fecha|fecha }}</strong><span>{{ d.kilos|kg }} de {{ lote.cultivo|lower }}, calidad {{ CALIDADES.get(d.calidad, d.calidad)|lower }}{% if d.estado == "anulado" %} · anulada: {{ d.motivo_anulacion }}{% endif %}</span></div>
+          {% else %}
+          <span class="linea-tiempo__punto linea-tiempo__punto--venta"></span><div><strong>Venta · {{ d.fecha|fecha }}</strong><span>{{ d.kilos|kg }} a {{ d.comprador }} · {{ (d.kilos * d.precio_por_kilo)|clp }}{% if d.estado == "anulado" %} · anulada: {{ d.motivo_anulacion }}{% endif %}</span></div>
+          {% endif %}
+        </li>
+        {% endfor %}
+        <li class="linea-tiempo__actual"><span class="linea-tiempo__punto linea-tiempo__punto--hoy"></span><div><strong>Hoy</strong><span>{{ traza.kilos_disponibles|kg }} disponibles · {{ traza.ingresos|clp }} en ventas</span></div></li>
+      </ol>
+    </div>
+  </div>
+
+  <section class="tarjeta">
+    <h2>Entregas</h2>
+    {{ tabla_entregas(traza.entregas) }}
+  </section>
+
+  <section class="tarjeta">
+    <h2>Ventas</h2>
+    {{ tabla_ventas(traza.ventas) }}
+  </section>
+
+  {% set modificaciones = traza.historial|selectattr("accion", "ne", "creado")|list %}
+  <section class="tarjeta">
+    <h2>Modificaciones</h2>
+    {% if modificaciones %}
+    <ol class="historial">
+      {% for c in modificaciones|reverse %}
+      <li class="historial__item historial__item--{{ c.accion }}">
+        <div class="historial__cabeza"><strong>{{ c|accion }}</strong><span>{{ c.fecha|hora }} · {{ c.usuario_nombre }}</span></div>
+        {% if c.detalle %}<p>{{ c.detalle }}</p>{% endif %}
+        {% if c.motivo %}<p class="historial__motivo">Motivo: {{ c.motivo }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="vacio">El lote no ha tenido correcciones ni anulaciones.</p>
+    {% endif %}
+  </section>
+
+  <div class="rejilla-2">
+    <section class="tarjeta">
+      <h2>{{ icono("correo") }} Enviar reporte por correo</h2>
+      <p class="sutil">Para auditorías: envía la ficha con el reporte en PDF y el detalle de ventas en CSV.</p>
+      <form method="post" action="{{ url_for('trazabilidad.enviar_reporte', codigo=lote.codigo) }}" class="formulario" data-requiere-red>
+        {{ csrf() }}
+        {{ campo("destinatario", "Correo del destinatario", tipo="email", required=true, placeholder="auditor@cooperativa.cl", inputmode="email") }}
+        <button class="boton boton--primario" type="submit">Enviar reporte</button>
+      </form>
+    </section>
+
+    <section class="tarjeta tarjeta--ia">
+      <h2>{{ icono("chispa") }} Recomendación agronómica</h2>
+      {% if recomendacion %}
+        {{ datos_ia(recomendacion) }}
+      {% else %}
+        <p class="sutil">Sugerencias para conservar y vender lo que queda del lote.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('trazabilidad.recomendacion', codigo=lote.codigo) }}" data-requiere-red data-cargando="Generando recomendación…">
+        {{ csrf() }}
+        <button class="boton boton--suave" type="submit">{{ icono("chispa") }} {{ "Generar otra" if recomendacion else "Generar recomendación" }}</button>
+      </form>
+      {{ historial_ia(previas if not recomendacion else previas[1:]) }}
+    </section>
+  </div>
+{% endif %}
+{% endblock %}

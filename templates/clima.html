@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, campo as campo_form, csrf, datos_ia %}
+{% block titulo %}Clima{% endblock %}
+
+{% macro formulario_campo(actual) %}
+<form method="post" action="{{ url_for('clima.guardar_campo') }}" class="formulario" data-requiere-red data-ubicar>
+  {{ csrf() }}
+  {{ campo_form("nombre", "Nombre del campo", actual.nombre if actual else "", required=true, maxlength="120", placeholder="Ej: Parcela Los Robles") }}
+  <button type="button" class="boton boton--suave boton--bloque" data-usar-ubicacion>{{ icono("ubicacion") }} Usar mi ubicación actual</button>
+  <p class="campo__ayuda" data-ubicacion-estado>Hazlo parado en tu campo, o escribe las coordenadas (las encuentras en Google Maps manteniendo presionado el punto).</p>
+  <div class="fila-campos">
+    {{ campo_form("latitud", "Latitud", actual.latitud if actual else "", required=true, inputmode="decimal", placeholder="-38.74", autocomplete="off") }}
+    {{ campo_form("longitud", "Longitud", actual.longitud if actual else "", required=true, inputmode="decimal", placeholder="-72.60", autocomplete="off") }}
+  </div>
+  <button class="boton boton--primario boton--grande boton--bloque" type="submit">{{ icono("check") }} Guardar ubicación</button>
+</form>
+{% endmacro %}
+
+{% block contenido %}
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo">Red Agroclimática Nacional · Agromet</p>
+    <h1>{{ "Clima de tu campo" if propio else "Clima del campo de " ~ campo.productor if campo else "Clima" }}</h1>
+  </div>
+  {% if es_admin and campos %}
+  <form method="get" action="{{ url_for('clima.clima') }}" class="selector-campo" data-autoenvio>
+    <label class="campo">
+      <span class="campo__etiqueta">Ver campo de</span>
+      <span class="campo__control">
+        <select name="usuario">
+          <option value="">Mi campo</option>
+          {% for c in campos if c.usuario_id != usuario.id %}
+          <option value="{{ c.usuario_id }}" {% if usuario_objetivo == c.usuario_id %}selected{% endif %}>{{ c.productor }} · {{ c.nombre }}</option>
+          {% endfor %}
+        </select>
+      </span>
+    </label>
+    <noscript><button class="boton boton--suave" type="submit">Ver</button></noscript>
+  </form>
+  {% endif %}
+</header>
+
+{% if not campo or (editar and propio) %}
+  {% if propio %}
+  <div class="rejilla-2">
+    <section class="tarjeta">
+      <h2>{{ icono("ubicacion") }} {{ "Cambiar la ubicación" if campo else "¿Dónde está tu campo?" }}</h2>
+      <p class="sutil">Con la ubicación buscamos la estación agroclimática más cercana para mostrarte el clima y recomendaciones.</p>
+      {{ formulario_campo(campo) }}
+      {% if campo %}<p class="centrado"><a href="{{ url_for('clima.clima') }}">Cancelar</a></p>{% endif %}
+    </section>
+    <section class="tarjeta tarjeta--ia">
+      <h2>{{ icono("sol") }} Qué vas a ver</h2>
+      <ul class="lista-beneficios">
+        <li>{{ icono("termometro") }} Temperatura, humedad, viento y lluvia de la estación más cercana</li>
+        <li>{{ icono("alerta") }} Avisos de helada, calor, lluvia fuerte, viento y hongos</li>
+        <li>{{ icono("chispa") }} Recomendaciones con IA según el clima y tu cosecha en bodega</li>
+      </ul>
+    </section>
+  </div>
+  {% else %}
+  <div class="tarjeta estado-vacio">{{ icono("ubicacion") }}<p>Este socio aún no registra la ubicación de su campo.</p></div>
+  {% endif %}
+
+{% else %}
+  {% if clima and clima.fuente == "simulado" %}
+  <div class="aviso aviso--aviso">{{ icono("alerta") }}<span><strong>Datos de ejemplo.</strong> La conexión con Agromet{% if clima.sensores %} e Instacrops{% endif %} aún no está activa: los valores son simulados.</span></div>
+  {% endif %}
+  {% if clima and clima.aviso_sensores %}
+  <div class="aviso aviso--aviso">{{ icono("alerta") }}<span><strong>Sensores no disponibles.</strong> {{ clima.aviso_sensores }} El clima sigue actualizado.</span></div>
+  {% endif %}
+  {% if error_clima %}
+  <div class="aviso aviso--error">{{ icono("alerta") }}<span><strong>No pudimos obtener el clima.</strong> {{ error_clima }}</span></div>
+  {% endif %}
+
+  <div class="rejilla-clima">
+    <section class="tarjeta tarjeta-mapa">
+      <iframe class="mapa" title="Mapa del campo {{ campo.nombre }}" loading="lazy" referrerpolicy="no-referrer"
+        src="https://www.openstreetmap.org/export/embed.html?bbox={{ campo.longitud - 0.04 }}%2C{{ campo.latitud - 0.025 }}%2C{{ campo.longitud + 0.04 }}%2C{{ campo.latitud + 0.025 }}&amp;layer=mapnik&amp;marker={{ campo.latitud }}%2C{{ campo.longitud }}"></iframe>
+      <div class="tarjeta-mapa__pie">
+        <div>
+          <strong>{{ icono("ubicacion") }} {{ campo.nombre }}</strong>
+          <small>{{ "%.4f"|format(campo.latitud) }}, {{ "%.4f"|format(campo.longitud) }}</small>
+        </div>
+        <div class="tarjeta-mapa__acciones">
+          <a href="https://www.openstreetmap.org/?mlat={{ campo.latitud }}&amp;mlon={{ campo.longitud }}#map=14/{{ campo.latitud }}/{{ campo.longitud }}" target="_blank" rel="noopener">Mapa grande</a>
+          {% if propio %}<a href="{{ url_for('clima.clima', editar=1) }}">Cambiar ubicación</a>{% endif %}
+        </div>
+      </div>
+      {% if clima %}
+      <p class="estacion">{{ icono("antena") }}<span>Estación <strong>{{ clima.estacion.nombre }}</strong> ({{ clima.estacion.institucion }}) · {{ clima.estacion.comuna }}, {{ clima.estacion.region }} · a {{ clima.estacion.distancia_km|num }} km</span></p>
+      {% endif %}
+    </section>
+
+    {% if clima %}
+    <div class="pila">
+      {% set a = clima.actual %}
+      {% set r = clima.resumen_24h %}
+      <section class="tarjeta ahora">
+        <div class="ahora__principal">
+          <span class="ahora__etiqueta">Ahora{% if a %} · {{ a.fecha_hora|hora }}{% endif %}</span>
+          <strong class="ahora__temp">{{ a.temperatura|num if a and a.temperatura is not none else "—" }}<small>°C</small></strong>
+          <span class="sutil">Mín {{ r.temperatura_min|num if r.temperatura_min is not none else "—" }}° · Máx {{ r.temperatura_max|num if r.temperatura_max is not none else "—" }}° <small>(24 h)</small></span>
+        </div>
+        <ul class="ahora__datos">
+          <li>{{ icono("gota") }}<span>Humedad</span><strong>{{ a.humedad|num(0) if a and a.humedad is not none else "—" }} %</strong></li>
+          <li>{{ icono("viento") }}<span>Viento</span><strong>{{ a.viento|num(0) if a and a.viento is not none else "—" }} km/h</strong></li>
+          <li>{{ icono("nube") }}<span>Lluvia 24 h</span><strong>{{ r.precipitacion|num }} mm</strong></li>
+        </ul>
+      </section>
+
+      {% if clima.sensores %}
+      {% set s = clima.sensores %}
+      <section class="tarjeta">
+        <h2>{{ icono("antena") }} Sensores del campo</h2>
+        <ul class="ahora__datos">
+          <li>{{ icono("gota") }}<span>Humedad del suelo</span><strong>{{ s.actual.humedad_suelo|num(0) if s.actual and s.actual.humedad_suelo is not none else "—" }} %</strong></li>
+          <li>{{ icono("termometro") }}<span>Temperatura del suelo</span><strong>{{ s.actual.temperatura_suelo|num if s.actual and s.actual.temperatura_suelo is not none else "—" }} °C</strong></li>
+        </ul>
+        <p class="campo__ayuda">Dispositivo {{ s.dispositivo }}{% if s.actual %} · última lectura: {{ s.actual.fecha_hora|hora }}{% endif %}{% if not s.reciente %} · sin datos recientes{% endif %}</p>
+      </section>
+      {% endif %}
+
+      <section class="tarjeta">
+        <h2>{{ icono("alerta") }} Qué tomar en cuenta</h2>
+        {% if clima.alertas %}
+        <ul class="alertas">
+          {% for al in clima.alertas %}
+          <li class="alerta alerta--{{ al.nivel }}"><strong>{{ al.titulo }}</strong><span>{{ al.detalle }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="aviso aviso--ok">{{ icono("check") }}<span>Sin alertas: el clima de las últimas 24 horas no muestra riesgos.</span></div>
+        {% endif %}
+      </section>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if grafico %}
+  <section class="tarjeta">
+    <div class="tarjeta__cabeza">
+      <h2>Últimas 48 horas</h2>
+      <div class="leyenda"><span class="leyenda__temp">Temperatura (máx. y mín. de las 48 h)</span><span class="leyenda__lluvia">Lluvia por hora</span></div>
+    </div>
+    <div class="grafico">
+      <svg viewBox="0 0 {{ grafico.ancho }} {{ grafico.alto }}" preserveAspectRatio="none" class="grafico__svg" role="img" aria-label="Temperatura entre {{ grafico.minima.t|num }} y {{ grafico.maxima.t|num }} grados en las últimas 48 horas">
+        {% if grafico.cero is not none %}<line class="grafico__cero" x1="0" x2="{{ grafico.ancho }}" y1="{{ grafico.cero }}" y2="{{ grafico.cero }}"/>{% endif %}
+        {% for b in grafico.barras %}<rect class="grafico__lluvia" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.ancho }}" height="{{ b.alto }}"/>{% endfor %}
+        <polygon class="grafico__area" points="{{ grafico.area }}"/>
+        <polyline class="grafico__linea" points="{{ grafico.linea }}" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <span class="grafico__marca grafico__marca--max" data-pos-x="{{ (100 * grafico.maxima.x / grafico.ancho)|round(1) }}">{{ grafico.maxima.t|num }}°</span>
+      <span class="grafico__marca grafico__marca--min" data-pos-x="{{ (100 * grafico.minima.x / grafico.ancho)|round(1) }}">{{ grafico.minima.t|num }}°</span>
+    </div>
+    <div class="grafico__eje">
+      {% for e in grafico.etiquetas %}<span data-pos-x="{{ e.pos }}">{{ e.texto }}</span>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if clima %}
+  <section class="tarjeta tarjeta--ia">
+    <h2>{{ icono("chispa") }} Recomendación para tu campo</h2>
+    {% if recomendacion %}
+      {{ datos_ia(recomendacion) }}
+      <p class="campo__ayuda">Basada en el clima, los sensores disponibles y tu cosecha en bodega. Úsala como apoyo: tú conoces tu campo.</p>
+    {% else %}
+      <p class="sutil">Revisamos el clima reciente, los sensores, las alertas y lo que tienes en bodega para decirte qué tomar en consideración hoy.</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('clima.recomendacion') }}" data-requiere-red data-cargando="Analizando el clima…">
+      {{ csrf() }}
+      {% if usuario_objetivo %}<input type="hidden" name="usuario" value="{{ usuario_objetivo }}">{% endif %}
+      <button class="boton boton--primario" type="submit">{{ icono("chispa") }} {{ "Generar otra" if recomendacion else "¿Qué debo tomar en consideración?" }}</button>
+    </form>
+  </section>
+  {% endif %}
+{% endif %}
+{% endblock %}

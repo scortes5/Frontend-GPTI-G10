@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, campo, csrf %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo">Directiva</p>
+    <h1>Usuarios</h1>
+  </div>
+</header>
+
+<div class="rejilla-lotes">
+  <section class="tarjeta">
+    <h2>{{ icono("mas") }} Crear usuario</h2>
+    <form method="post" action="{{ url_for('panel.crear_usuario') }}" class="formulario" data-requiere-red>
+      {{ csrf() }}
+      {{ campo("nombre", "Nombre completo", valores.get("nombre", ""), required=true, maxlength="120", autocomplete="off") }}
+      {{ campo("rut", "RUT", valores.get("rut", ""), required=true, maxlength="14", placeholder="12.345.678-5", autocomplete="off", ayuda="Se revisa el dígito verificador.") }}
+      {{ campo("email", "Correo", valores.get("email", ""), tipo="email", required=true, autocomplete="off", inputmode="email", ayuda="Le enviaremos aquí su contraseña inicial.") }}
+      {{ campo("clave", "Contraseña inicial (opcional)", tipo="password", minlength="8", autocomplete="new-password", ayuda="Si la dejas en blanco, el sistema crea una segura. Se envía por correo al socio.") }}
+      <fieldset class="opciones">
+        <legend class="campo__etiqueta">Rol</legend>
+        {% set rol_actual = valores.get("rol", "productor") %}
+        <label class="opcion"><input type="radio" name="rol" value="productor" {% if rol_actual == "productor" %}checked{% endif %}><span><strong>Productor</strong><small>Registra y vende sus propios lotes</small></span></label>
+        <label class="opcion"><input type="radio" name="rol" value="admin" {% if rol_actual == "admin" %}checked{% endif %}><span><strong>Administrador</strong><small>Ve toda la cooperativa y gestiona usuarios</small></span></label>
+      </fieldset>
+      <button class="boton boton--primario boton--bloque" type="submit">Crear usuario</button>
+    </form>
+  </section>
+
+  <section class="tarjeta tarjeta--tabla">
+    <h2>Usuarios registrados <span class="contador">{{ usuarios|length }}</span></h2>
+    <ul class="lista-usuarios">
+      {% for u in usuarios|sort(attribute="nombre") %}
+      <li class="usuario-fila{% if not u.activo %} usuario-fila--inactivo{% endif %}">
+        <span class="perfil__avatar" aria-hidden="true">{{ u.nombre[:1]|upper }}</span>
+        <div class="usuario-fila__datos">
+          <strong>{{ u.nombre }}{% if u.id == usuario.id %} <span class="pastilla">Tú</span>{% endif %}{% if not u.activo %} <span class="pastilla pastilla--error">Sin acceso</span>{% endif %}</strong>
+          <small>{{ u.email }}{% if u.rut %} · RUT {{ u.rut|rut }}{% endif %} · {{ ROLES[u.rol] }}</small>
+        </div>
+        <details class="usuario-fila__editar">
+          <summary class="boton boton--suave boton--chico">Editar</summary>
+          <form method="post" action="{{ url_for('panel.actualizar_usuario', usuario_id=u.id) }}" class="formulario" data-requiere-red>
+            {{ csrf() }}
+            {{ campo("nombre", "Nombre completo", u.nombre, required=true, maxlength="120", autocomplete="off") }}
+            {{ campo("email", "Correo", u.email, tipo="email", required=true, autocomplete="off", inputmode="email") }}
+            {{ campo("rut", "RUT", u.rut|rut, maxlength="14", placeholder="12.345.678-5", autocomplete="off") }}
+            {% if u.id != usuario.id %}
+            <div class="formulario-linea">
+              <select name="rol" aria-label="Rol de {{ u.nombre }}">
+                {% for clave, nombre in ROLES.items() %}<option value="{{ clave }}" {% if u.rol == clave %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+              </select>
+              <label class="interruptor">
+                <input type="checkbox" name="activo" value="si" {% if u.activo %}checked{% endif %}>
+                <span>Puede entrar</span>
+              </label>
+            </div>
+            {% endif %}
+            <button class="boton boton--primario boton--chico" type="submit">Guardar</button>
+          </form>
+        </details>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

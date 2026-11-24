@@ -1,3 +1,5 @@
-streamlit>=1.50
+flask>=3.1
 requests>=2.32
 python-dotenv>=1.0
+gunicorn>=23.0
+pytest>=8.3

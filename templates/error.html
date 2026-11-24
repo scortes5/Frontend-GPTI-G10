@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono %}
+{% block titulo %}Algo salió mal{% endblock %}
+{% macro cuerpo() %}
+<div class="estado-vacio estado-vacio--grande tarjeta">
+  {{ icono("alerta") }}
+  <h1>No pudimos mostrar esta página</h1>
+  <p>{{ mensaje }}</p>
+  <div class="formulario-linea">
+    <button type="button" class="boton boton--primario" data-recargar>Reintentar</button>
+    <a class="boton boton--suave" href="{{ url_for('panel.inicio') }}">Ir al inicio</a>
+  </div>
+</div>
+{% endmacro %}
+{% block contenido %}{{ cuerpo() }}{% endblock %}
+{% block publico %}{{ cuerpo() }}{% endblock %}

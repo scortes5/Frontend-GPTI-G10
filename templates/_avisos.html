@@ -1,0 +1,13 @@
+{% from "_macros.html" import icono %}
+{% with mensajes = get_flashed_messages(with_categories=true) %}
+{% if mensajes %}
+{% set _ = g.setdefault("con_avisos", true) %}{# el service worker no guarda páginas con avisos de un solo uso #}
+<div class="avisos" data-avisos-servidor>
+  {% for categoria, mensaje in mensajes %}
+  <div class="aviso aviso--{{ categoria }}" role="{{ 'alert' if categoria == 'error' else 'status' }}">
+    {{ icono("check" if categoria == "ok" else "alerta") }}<span>{{ mensaje }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}

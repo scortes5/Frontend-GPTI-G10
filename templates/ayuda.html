@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono %}
+{% block titulo %}Ayuda{% endblock %}
+
+{% macro paso(numero, nombre_icono, titulo) -%}
+<li class="guia__paso">
+  <span class="guia__numero" aria-hidden="true">{{ numero }}</span>
+  <span class="guia__icono" aria-hidden="true">{{ icono(nombre_icono) }}</span>
+  <div class="guia__texto"><h3>{{ titulo }}</h3>{{ caller() }}</div>
+</li>
+{%- endmacro %}
+
+{% block contenido %}
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo">Guía paso a paso</p>
+    <h1>¿Cómo uso AgroTracker?</h1>
+  </div>
+</header>
+
+<section class="tarjeta">
+  <h2>Registrar mi cosecha</h2>
+  <ol class="guia">
+    {% call paso(1, "lotes", "Abre «Lotes»") %}
+      <p>Está en el menú. En el celular, abajo de la pantalla.</p>
+      <div class="muestra"><span class="muestra__boton">{{ icono("lotes") }} Lotes</span></div>
+    {% endcall %}
+    {% call paso(2, "mas", "Completa el formulario «Registrar lote»") %}
+      <p>Escribe el <strong>cultivo</strong> (por ejemplo, arándano), el <strong>predio</strong>, los <strong>kilos</strong> y la <strong>fecha</strong>. Elige la <strong>calidad</strong>.</p>
+      <div class="muestra muestra--campos">
+        <span><small>Cultivo</small>Arándano</span><span><small>Kilos</small>100 kg</span><span><small>Calidad</small><b class="pastilla pastilla--ok">Primera</b></span>
+      </div>
+    {% endcall %}
+    {% call paso(3, "check", "Toca «Guardar lote»") %}
+      <p>Aparece la ficha del lote con su <strong>código QR</strong>. Imprímelo y pégalo en la caja.</p>
+      <div class="muestra"><span class="muestra__boton muestra__boton--primario">{{ icono("check") }} Guardar lote</span></div>
+    {% endcall %}
+    {% call paso(4, "mas", "¿Entregaste más cosecha del mismo lote?") %}
+      <p>Entra al lote y toca <strong>«Agregar otra entrega»</strong>. No crees un lote nuevo.</p>
+    {% endcall %}
+  </ol>
+</section>
+
+<section class="tarjeta">
+  <h2>{{ icono("sin-red") }} Si no hay señal</h2>
+  <ol class="guia">
+    {% call paso(1, "nube", "Guarda igual") %}
+      <p>Verás una franja que dice <em>«Sin conexión»</em>. Lo que guardes queda en tu teléfono.</p>
+      <div class="muestra"><span class="chip-cola muestra__chip">{{ icono("nube") }} <b>1</b> pendiente</span></div>
+    {% endcall %}
+    {% call paso(2, "reloj", "Espera la señal") %}
+      <p>Cuando vuelva internet, se envía solo. El aviso de <strong>pendientes</strong> desaparece cuando todo llegó.</p>
+    {% endcall %}
+    {% call paso(3, "alerta", "Si un registro dice «Rechazado»") %}
+      <p>Toca el aviso de pendientes, revisa el error y corrige los datos. No lo vuelvas a escribir desde cero.</p>
+    {% endcall %}
+  </ol>
+</section>
+
+<section class="tarjeta">
+  <h2>Corregir un error</h2>
+  <ol class="guia">
+    {% call paso(1, "lotes", "Abre el lote") %}
+      <p>En «Lotes», toca <strong>«Ver y editar»</strong>.</p>
+    {% endcall %}
+    {% call paso(2, "check", "Cambia el dato y escribe el motivo") %}
+      <p>Por ejemplo: <em>«el predio estaba mal escrito»</em>. El cambio queda guardado con tu nombre y la fecha.</p>
+    {% endcall %}
+    {% call paso(3, "basura", "Si los kilos o una venta están mal") %}
+      <p>Toca <strong>«Anular»</strong> en esa fila y explica por qué. Nada se borra: queda tachado en el historial. Después registra el dato correcto.</p>
+    {% endcall %}
+  </ol>
+</section>
+
+<section class="tarjeta">
+  <h2>Vender y revisar</h2>
+  <ol class="guia">
+    {% call paso(1, "ventas", "Anota la venta") %}
+      <p>En «Ventas», elige el lote, escribe el comprador, los kilos y el precio por kilo. La app no deja vender más de lo que tienes.</p>
+    {% endcall %}
+    {% call paso(2, "qr", "Muestra el origen") %}
+      <p>Quien escanee el QR de la caja ve de dónde viene tu cosecha, <strong>sin precios ni ventas</strong>.</p>
+    {% endcall %}
+    {% call paso(3, "imprimir", "Descarga el reporte") %}
+      <p>En el lote, toca <strong>«Descargar PDF»</strong> para auditorías.</p>
+    {% endcall %}
+    {% call paso(4, "chispa", "Pide una recomendación") %}
+      <p>En «Trazabilidad» o «Clima». Es una <strong>sugerencia</strong>: revisa los datos que usó antes de hacerle caso.</p>
+    {% endcall %}
+  </ol>
+</section>
+
+<div class="aviso aviso--info">{{ icono("reloj") }}<span>Por seguridad, si dejas la app sin usar {{ inactividad_minutos }} minutos se cierra tu sesión. Lo que tengas pendiente no se pierde.</span></div>
+<p class="sutil centrado">¿Dudas? Pregunta a la directiva de la cooperativa.</p>
+{% endblock %}

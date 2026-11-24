@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono, campo, csrf %}
+{% block titulo %}Bienvenido{% endblock %}
+{% block publico %}
+<div class="entrada">
+  <header class="entrada__marca">
+    <span class="marca__logo">{{ icono("hoja") }}</span>
+    <div>
+      <strong>AgroTracker</strong>
+      <small>Cooperativa Newen al Sur</small>
+    </div>
+  </header>
+
+  <h1 class="entrada__titulo">¿Qué quieres hacer?</h1>
+
+  <div class="entrada__opciones">
+    <a class="opcion-grande opcion-grande--qr" href="{{ url_for('trazabilidad.escanear') }}">
+      <span class="opcion-grande__icono">{{ icono("qr") }}</span>
+      <span class="opcion-grande__texto">
+        <strong>Escanear código QR</strong>
+        <small>Ver el origen de un producto. No necesitas cuenta.</small>
+      </span>
+      {{ icono("flecha", "opcion-grande__flecha") }}
+    </a>
+
+    <a class="opcion-grande" href="#iniciar-sesion" data-mostrar="iniciar-sesion" {% if mostrar_formulario %}aria-expanded="true"{% endif %}>
+      <span class="opcion-grande__icono">{{ icono("usuarios") }}</span>
+      <span class="opcion-grande__texto">
+        <strong>Iniciar sesión</strong>
+        <small>Para socios y directiva de la cooperativa.</small>
+      </span>
+      {{ icono("flecha", "opcion-grande__flecha") }}
+    </a>
+  </div>
+
+  <section class="tarjeta entrada__formulario" id="iniciar-sesion" {% if not mostrar_formulario %}data-oculto-con-js{% endif %}>
+    <h2>Iniciar sesión</h2>
+    <form method="post" action="{{ url_for('auth.login') }}" class="formulario">
+      {{ csrf() }}
+      <input type="hidden" name="siguiente" value="{{ siguiente }}">
+      {{ campo("email", "Correo", email, tipo="email", autocomplete="username", required=true, inputmode="email") }}
+      {{ campo("clave", "Contraseña", tipo="password", autocomplete="current-password", required=true) }}
+      <button class="boton boton--primario boton--grande boton--bloque" type="submit">Entrar</button>
+    </form>
+    <div class="acceso__enlaces">
+      <a href="{{ url_for('auth.recuperar') }}">¿Olvidaste tu contraseña?</a>
+    </div>
+    <p class="sutil pequeño">¿No tienes cuenta? Pídela a la directiva de la cooperativa.</p>
+  </section>
+
+  <p class="entrada__codigo sutil">¿El QR no se lee? <a href="{{ url_for('trazabilidad.ficha') }}">Escribe el código del lote</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono %}
+{% block titulo %}Sin conexión{% endblock %}
+{% macro cuerpo() %}
+<div class="estado-vacio estado-vacio--grande tarjeta">
+  {{ icono("sin-red") }}
+  <h1>Sin conexión</h1>
+  <p>Esta página no está guardada en el equipo. Las páginas que ya abriste antes sí se pueden ver sin señal.</p>
+  <p>Puedes seguir <a href="/lotes">registrando lotes</a> y <a href="/ventas">ventas</a>: quedan guardados y se envían solos cuando vuelve la conexión.</p>
+  <button type="button" class="boton boton--primario" data-recargar>Reintentar</button>
+</div>
+{% endmacro %}
+{% block contenido %}{{ cuerpo() }}{% endblock %}
+{% block publico %}{{ cuerpo() }}{% endblock %}

@@ -1,0 +1,7 @@
+<fieldset class="opciones opciones--fila">
+  <legend class="campo__etiqueta">Calidad</legend>
+  {% set calidad_actual = valores.get("calidad") or "primera" %}
+  {% for clave, nombre in CALIDADES.items() %}
+  <label class="opcion opcion--chica"><input type="radio" name="calidad" value="{{ clave }}" {% if calidad_actual == clave %}checked{% endif %}><span><strong>{{ nombre }}</strong></span></label>
+  {% endfor %}
+</fieldset>

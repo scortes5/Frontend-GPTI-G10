@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icono %}
+{% block titulo %}Inicio{% endblock %}
+{% block contenido %}
+<header class="cabecera">
+  <div>
+    <p class="cabecera__antetitulo">Hola, {{ usuario.nombre.split(" ")[0] }}</p>
+    <h1>Resumen {{ "de la cooperativa" if es_admin else "de tus lotes" }}</h1>
+  </div>
+  <a class="boton boton--primario" href="{{ url_for('panel.lotes') }}#registrar">{{ icono("mas") }} Registrar cosecha</a>
+</header>
+
+{% include "_filtros.html" %}
+{% if filtros %}
+<p class="sutil periodo">Mostrando
+  {%- if filtros.desde or filtros.hasta %} el período {{ filtros.desde|fecha if filtros.desde else "inicio" }} a {{ filtros.hasta|fecha if filtros.hasta else "hoy" }}{% endif %}
+  {%- if filtros.cultivo %} · cultivo {{ filtros.cultivo }}{% endif %}
+  {%- for s in socios if filtros.usuario_id == s.id|string %} · socio {{ s.nombre }}{% endfor %}.
+</p>
+{% endif %}
+
+<section class="indicadores" aria-label="Indicadores">
+  <article class="indicador">
+    <span class="indicador__icono">{{ icono("lotes") }}</span>
+    <span class="indicador__etiqueta">Lotes registrados</span>
+    <strong class="indicador__valor">{{ resumen.total_lotes|num(0) }}</strong>
+    <span class="indicador__nota">{{ resumen.total_entregas|num(0) }} entrega{{ "s" if resumen.total_entregas != 1 }}</span>
+  </article>
+  <article class="indicador">
+    <span class="indicador__icono">{{ icono("hoja") }}</span>
+    <span class="indicador__etiqueta">Kilos cosechados</span>
+    <strong class="indicador__valor">{{ resumen.kilos_cosechados|num }}<small> kg</small></strong>
+  </article>
+  <article class="indicador">
+    <span class="indicador__icono">{{ icono("reloj") }}</span>
+    <span class="indicador__etiqueta">Kilos disponibles</span>
+    <strong class="indicador__valor">{{ resumen.kilos_disponibles|num }}<small> kg</small></strong>
+    {% if resumen.kilos_cosechados %}
+    <span class="indicador__nota">{{ (100 * resumen.kilos_vendidos / resumen.kilos_cosechados)|round|int }}% ya vendido</span>
+    {% endif %}
+  </article>
+  <article class="indicador indicador--destacado">
+    <span class="indicador__icono">{{ icono("ventas") }}</span>
+    <span class="indicador__etiqueta">Ingresos por ventas</span>
+    <strong class="indicador__valor">{{ resumen.ingresos|clp }}</strong>
+    <span class="indicador__nota">{{ resumen.total_ventas|num(0) }} venta{{ "s" if resumen.total_ventas != 1 }}</span>
+  </article>
+</section>
+
+{% if clima %}
+<a class="tarjeta clima-mini" href="{{ url_for('clima.clima') }}">
+  <span class="clima-mini__icono">{{ icono("sol") }}</span>
+  <span class="clima-mini__texto">
+    <strong>{{ clima.campo.nombre }} · {{ clima.actual.temperatura|num if clima.actual and clima.actual.temperatura is not none else "—" }} °C</strong>
+    <small>Mín {{ clima.resumen_24h.temperatura_min|num if clima.resumen_24h.temperatura_min is not none else "—" }}° · Máx {{ clima.resumen_24h.temperatura_max|num if clima.resumen_24h.temperatura_max is not none else "—" }}° · Lluvia {{ clima.resumen_24h.precipitacion|num }} mm · Estación {{ clima.estacion.nombre }}</small>
+  </span>
+  {% set urgentes = clima.alertas|selectattr("nivel", "ne", "info")|list %}
+  {% if urgentes %}<span class="pastilla pastilla--error">{{ urgentes[0].titulo }}{% if urgentes|length > 1 %} +{{ urgentes|length - 1 }}{% endif %}</span>
+  {% else %}<span class="pastilla pastilla--ok">Sin alertas</span>{% endif %}
+  {{ icono("flecha", "accesos__flecha") }}
+</a>
+{% elif sin_campo %}
+<a class="tarjeta clima-mini clima-mini--vacio" href="{{ url_for('clima.clima') }}">
+  <span class="clima-mini__icono">{{ icono("ubicacion") }}</span>
+  <span class="clima-mini__texto"><strong>Registra la ubicación de tu campo</strong><small>Verás el clima de la estación Agromet más cercana, alertas de helada y recomendaciones.</small></span>
+  {{ icono("flecha", "accesos__flecha") }}
+</a>
+{% endif %}
+
+<div class="rejilla-2">
+  <section class="tarjeta">
+    <h2>Kilos cosechados por cultivo</h2>
+    {% if cultivos %}
+    <ul class="barras">
+      {% for cultivo, kilos in cultivos %}
+      <li class="barras__fila">
+        <span class="barras__nombre">{{ cultivo }}</span>
+        <svg class="barras__barra" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+          <rect class="barras__fondo" width="100" height="10" rx="5"/>
+          <rect class="barras__valor" width="{{ (100 * kilos / maximo) if maximo else 0 }}" height="10" rx="5"/>
+        </svg>
+        <span class="barras__cifra">{{ kilos|kg }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="vacio">Aún no hay cosechas registradas.</p>
+    {% endif %}
+  </section>
+
+  <section class="tarjeta">
+    <h2>{{ icono("nube") }} Registros sin conexión</h2>
+    {% set cola = resumen.cola %}
+    {% if cola.eventos %}
+    <div class="datos-lote datos-lote--3">
+      <div class="dato"><span class="dato__etiqueta">Tiempo promedio de llegada</span><span class="dato__valor">{{ cola.promedio_segundos|duracion }}</span></div>
+      <div class="dato"><span class="dato__etiqueta">Esperaron señal</span><span class="dato__valor">{{ cola.en_cola }} de {{ cola.eventos }}</span></div>
+      <div class="dato"><span class="dato__etiqueta">Demora máxima</span><span class="dato__valor">{{ cola.maximo_segundos|duracion }}</span></div>
+    </div>
+    <p class="campo__ayuda">Tiempo entre que se guarda un registro en el celular y que llega al servidor.
+      {% if cola.en_cola %}Los que esperaron señal tardaron en promedio {{ cola.promedio_cola_segundos|duracion }}.{% endif %}</p>
+    {% else %}
+    <p class="vacio">Aún no hay registros enviados desde la aplicación en este período.</p>
+    {% endif %}
+  </section>
+
+  <section class="tarjeta tarjeta--ia">
+    <h2>{{ icono("chispa") }} Recomendaciones</h2>
+    {% set ia = resumen.recomendaciones %}
+    {% if ia.ultima %}
+    <p class="sutil">{{ ia.total }} recomendación{{ "es" if ia.total != 1 }} generada{{ "s" if ia.total != 1 }}. La última, del {{ ia.ultima.creado|hora }}{% if ia.ultima.lote_codigo %} para el lote <a href="{{ url_for('trazabilidad.ficha', codigo=ia.ultima.lote_codigo) }}">{{ ia.ultima.lote_codigo }}</a>{% else %} sobre el clima del campo{% endif %}:</p>
+    <div class="texto-ia texto-ia--resumen">{{ ia.ultima.texto|texto_ia }}</div>
+    {% else %}
+    <p class="vacio">Aún no se han pedido recomendaciones. Puedes pedirlas desde la trazabilidad de un lote o en Clima.</p>
+    {% endif %}
+  </section>
+
+  <section class="tarjeta">
+    <h2>¿Qué quieres hacer?</h2>
+    <ul class="accesos">
+      <li><a href="{{ url_for('panel.lotes') }}#registrar">{{ icono("lotes") }}<span><strong>Registrar una cosecha</strong><small>Crea el lote y su código QR</small></span>{{ icono("flecha", "accesos__flecha") }}</a></li>
+      <li><a href="{{ url_for('panel.ventas') }}">{{ icono("ventas") }}<span><strong>Anotar una venta</strong><small>Comprador, kilos y precio</small></span>{{ icono("flecha", "accesos__flecha") }}</a></li>
+      <li><a href="{{ url_for('trazabilidad.ficha') }}">{{ icono("qr") }}<span><strong>Ver la trazabilidad</strong><small>Historial, reporte y recomendación</small></span>{{ icono("flecha", "accesos__flecha") }}</a></li>
+    </ul>
+  </section>
+</div>
+{% endblock %}
